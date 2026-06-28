@@ -1,12 +1,12 @@
-import { Box, Text } from 'ink';
+import {Box, Text} from 'ink';
 import React from 'react';
-import { theme } from '../utils/theme.js';
-import { APP_VERSION } from '../utils/version.js';
+import {theme} from '../utils/theme.js';
+import {APP_VERSION} from '../utils/version.js';
 import Logo from './logo.js';
-import { useConfigStore } from '../store/config-store.js';
+import {useConfigStore} from '../store/config-store.js';
 
 export default function WelcomeHeader() {
-	const { config } = useConfigStore();
+	const {config} = useConfigStore();
 	const recents = config.recentDownloads.slice(0, 3);
 
 	return (
@@ -32,8 +32,12 @@ export default function WelcomeHeader() {
 				marginX={1}
 			/>
 			<Box flexDirection="column" width="70%">
-				<Text color={theme.primary} bold>Tips for getting started</Text>
-				<Text>Run <Text color={theme.secondary}>/help</Text> to see all commands</Text>
+				<Text color={theme.primary} bold>
+					Tips for getting started
+				</Text>
+				<Text>
+					Run <Text color={theme.secondary}>/help</Text> to see all commands
+				</Text>
 				<Box
 					borderStyle="single"
 					borderColor={theme.primary}
@@ -41,7 +45,9 @@ export default function WelcomeHeader() {
 					borderLeft={false}
 					borderRight={false}
 				/>
-				<Text color={theme.primary} bold>Recent activity</Text>
+				<Text color={theme.primary} bold>
+					Recent activity
+				</Text>
 				{recents.length > 0 ? (
 					recents.map((recent, i) => (
 						<Box key={i} flexDirection="column">

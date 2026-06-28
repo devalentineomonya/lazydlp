@@ -8,5 +8,5 @@ export const theme = {
 	dim: 'gray',
 	border: '#444',
 	highlight: '#f38ba8', // Red-ish highlight
-	link: '#89b4fa'       // Blue-ish link
+	link: '#89b4fa', // Blue-ish link
 };

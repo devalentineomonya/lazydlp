@@ -1,29 +1,46 @@
-import { useApp, useInput } from 'ink';
-import { spawn, spawnSync } from 'node:child_process';
+import {useApp, useInput} from 'ink';
+import {spawn, spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
-import { useEffect, useState } from 'react';
-import { useConfigStore } from '../store/config-store.js';
-import { useMessageStore } from '../store/message-store.js';
-import { useDownloadStore } from '../store/download-store.js';
-import { resetYtDlpVersionCache } from '../utils/version.js';
-import { COMMANDS } from '../utils/commands.js';
+import {useEffect, useState, useRef} from 'react';
+import {useConfigStore} from '../store/config-store.js';
+import {useMessageStore} from '../store/message-store.js';
+import {useDownloadStore} from '../store/download-store.js';
+import {resetYtDlpVersionCache} from '../utils/version.js';
+import {COMMANDS} from '../utils/commands.js';
 
 export function useAppState() {
-	const { config, setDownloadDir, addRecentDownload } = useConfigStore();
-	const { history, addMessage, addTemporaryMessage, updateMessage, clearMessages } = useMessageStore();
-	const { isDownloading, setIsDownloading } = useDownloadStore();
-	
+	const {config, setDownloadDir, addRecentDownload} = useConfigStore();
+	const {
+		history,
+		addMessage,
+		addTemporaryMessage,
+		updateMessage,
+		clearMessages,
+	} = useMessageStore();
+	const {isDownloading, setIsDownloading} = useDownloadStore();
+
 	const [input, setInput] = useState('');
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [ctrlCPressed, setCtrlCPressed] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
 	const [helpTab, setHelpTab] = useState(0);
 	const [inputKey, setInputKey] = useState(0);
-	const { exit } = useApp();
+	const {exit} = useApp();
+	
+	const activeHandles = useRef<{ kill: () => void }[]>([]);
 
+	const quitApp = () => {
+		activeHandles.current.forEach(handle => {
+			try {
+				handle.kill();
+			} catch {}
+		});
+		exit();
+		setTimeout(() => process.exit(0), 50);
+	};
 	// Filter suggestions dynamically based on input
 	const isCommand = input.startsWith('/');
 	const [cmdName] = input.split(' ');
@@ -58,7 +75,7 @@ export function useAppState() {
 
 		if (inputChar === 'c' && key.ctrl) {
 			if (ctrlCPressed) {
-				exit();
+				quitApp();
 			} else {
 				setCtrlCPressed(true);
 			}
@@ -80,7 +97,11 @@ export function useAppState() {
 			if (sys.status === 0) return 'yt-dlp';
 		} catch {}
 
-		const customPath = path.join(os.homedir(), '.lazydlp', os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+		const customPath = path.join(
+			os.homedir(),
+			'.lazydlp',
+			os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+		);
 		if (fs.existsSync(customPath)) return customPath;
 
 		return null;
@@ -89,7 +110,10 @@ export function useAppState() {
 	const handleConfigure = (forceDownload = false) => {
 		const existingPath = getDlpPath();
 		if (existingPath && !forceDownload) {
-			addMessage('system', `yt-dlp is already installed at: ${existingPath}. Use /update to force an update.`);
+			addMessage(
+				'system',
+				`yt-dlp is already installed at: ${existingPath}. Use /update to force an update.`,
+			);
 			return;
 		}
 
@@ -105,58 +129,73 @@ export function useAppState() {
 		const url = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${filename}`;
 		const targetDir = path.join(os.homedir(), '.lazydlp');
 		if (!fs.existsSync(targetDir)) {
-			fs.mkdirSync(targetDir, { recursive: true });
+			fs.mkdirSync(targetDir, {recursive: true});
 		}
 
-		const destPath = path.join(targetDir, platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+		const destPath = path.join(
+			targetDir,
+			platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+		);
 		const file = fs.createWriteStream(destPath);
 		const currentLogId = addTemporaryMessage('system', 'Connecting...');
 
 		const download = (urlStr: string) => {
-			https.get(urlStr, (response) => {
-				if (response.statusCode === 301 || response.statusCode === 302) {
-					return download(response.headers.location!);
-				}
-				if (response.statusCode !== 200) {
-					addMessage('error', `Download failed with status ${response.statusCode}`);
-					setIsDownloading(false);
-					return;
-				}
-
-				const total = parseInt(response.headers['content-length'] || '0', 10);
-				let downloaded = 0;
-				let lastUpdate = 0;
-
-				response.on('data', (chunk) => {
-					downloaded += chunk.length;
-					const now = Date.now();
-					if (total > 0 && now - lastUpdate > 100) {
-						lastUpdate = now;
-						const percent = Math.round((downloaded / total) * 100);
-						const barWidth = 30;
-						const filled = Math.round((percent / 100) * barWidth);
-						const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled);
-
-						updateMessage(currentLogId, `Downloading yt-dlp: [${bar}] ${percent}%`);
+			const req = https
+				.get(urlStr, response => {
+					if (response.statusCode === 301 || response.statusCode === 302) {
+						return download(response.headers.location!);
 					}
-				});
-
-				response.pipe(file);
-
-				file.on('finish', () => {
-					file.close();
-					if (platform !== 'win32') {
-						fs.chmodSync(destPath, 0o755);
+					if (response.statusCode !== 200) {
+						addMessage(
+							'error',
+							`Download failed with status ${response.statusCode}`,
+						);
+						setIsDownloading(false);
+						return;
 					}
-					resetYtDlpVersionCache();
+
+					const total = parseInt(response.headers['content-length'] || '0', 10);
+					let downloaded = 0;
+					let lastUpdate = 0;
+
+					response.on('data', chunk => {
+						downloaded += chunk.length;
+						const now = Date.now();
+						if (total > 0 && now - lastUpdate > 100) {
+							lastUpdate = now;
+							const percent = Math.round((downloaded / total) * 100);
+							const barWidth = 30;
+							const filled = Math.round((percent / 100) * barWidth);
+							const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled);
+
+							updateMessage(
+								currentLogId,
+								`Downloading yt-dlp: [${bar}] ${percent}%`,
+							);
+						}
+					});
+
+					response.pipe(file);
+
+					file.on('finish', () => {
+						file.close();
+						if (platform !== 'win32') {
+							fs.chmodSync(destPath, 0o755);
+						}
+						resetYtDlpVersionCache();
+						setIsDownloading(false);
+						updateMessage(
+							currentLogId,
+							`yt-dlp successfully installed to ${destPath}`,
+						);
+					});
+				})
+				.on('error', err => {
+					fs.unlink(destPath, () => {});
 					setIsDownloading(false);
-					updateMessage(currentLogId, `yt-dlp successfully installed to ${destPath}`);
+					addMessage('error', `Download error: ${err.message}`);
 				});
-			}).on('error', (err) => {
-				fs.unlink(destPath, () => {});
-				setIsDownloading(false);
-				addMessage('error', `Download error: ${err.message}`);
-			});
+			activeHandles.current.push({ kill: () => req.destroy() });
 		};
 
 		download(url);
@@ -166,7 +205,8 @@ export function useAppState() {
 		addMessage('system', 'Updating lazydlp CLI and yt-dlp...');
 
 		const pkgUpdate = spawn('bun', ['install', '-g', 'lazydlp@latest']);
-		pkgUpdate.on('close', (code) => {
+		activeHandles.current.push(pkgUpdate);
+		pkgUpdate.on('close', code => {
 			if (code === 0) {
 				addMessage('system', 'lazydlp CLI updated to the latest version.');
 			} else {
@@ -176,7 +216,7 @@ export function useAppState() {
 			handleConfigure(true);
 		});
 
-		pkgUpdate.on('error', (err) => {
+		pkgUpdate.on('error', err => {
 			addMessage('error', `Update error: ${err.message}`);
 			handleConfigure(true);
 		});
@@ -185,14 +225,20 @@ export function useAppState() {
 	const handleDownload = (url: string) => {
 		const dlpPath = getDlpPath();
 		if (!dlpPath) {
-			addMessage('error', 'yt-dlp is not installed. Please run /configure to download and set it up.');
+			addMessage(
+				'error',
+				'yt-dlp is not installed. Please run /configure to download and set it up.',
+			);
 			return;
 		}
 
 		setIsDownloading(true);
 		addMessage('system', `Starting download for: ${url}`);
 
-		const ytDlp = spawn(dlpPath, ['-P', config.downloadDir, url], { cwd: config.downloadDir });
+		const ytDlp = spawn(dlpPath, ['-P', config.downloadDir, url], {
+			cwd: config.downloadDir,
+		});
+		activeHandles.current.push(ytDlp);
 		const currentLogId = addTemporaryMessage('yt-dlp', '...');
 		let outputBuffer = '';
 		let lastUpdate = 0;
@@ -200,7 +246,8 @@ export function useAppState() {
 
 		let videoTitle: string | undefined;
 		const titleProcess = spawn(dlpPath, ['--print', 'title', url]);
-		titleProcess.stdout.on('data', (data) => {
+		activeHandles.current.push(titleProcess);
+		titleProcess.stdout.on('data', data => {
 			const output = data.toString().trim();
 			if (output && !output.startsWith('WARNING')) {
 				const lines = output.split('\n');
@@ -237,7 +284,9 @@ export function useAppState() {
 				const percent = parseFloat(progressMatch[1]!);
 				const barWidth = 30;
 				const filled = Math.round((percent / 100) * barWidth);
-				const bar = '█'.repeat(Math.max(0, filled)) + '░'.repeat(Math.max(0, barWidth - filled));
+				const bar =
+					'█'.repeat(Math.max(0, filled)) +
+					'░'.repeat(Math.max(0, barWidth - filled));
 
 				const etaMatch = lastStr.match(/ETA\s+([\d:]+)/);
 				const speedMatch = lastStr.match(/at\s+([\d\.\w\/]+)/);
@@ -254,33 +303,41 @@ export function useAppState() {
 			}
 		};
 
-		ytDlp.stdout.on('data', (data) => {
+		ytDlp.stdout.on('data', data => {
 			updateLastOutput(data.toString());
 		});
 
-		ytDlp.stderr.on('data', (data) => {
+		ytDlp.stderr.on('data', data => {
 			updateLastOutput(data.toString());
 		});
 
-		ytDlp.on('close', (code) => {
+		ytDlp.on('close', code => {
 			updateLastOutput('', true);
 			setIsDownloading(false);
 			if (code === 0) {
-				addMessage('system', `Download completed successfully to ${config.downloadDir}.`);
+				addMessage(
+					'system',
+					`Download completed successfully to ${config.downloadDir}.`,
+				);
 				addRecentDownload(url, videoTitle);
 			} else {
 				addMessage('error', `yt-dlp exited with code ${code}`);
 			}
 		});
 
-		ytDlp.on('error', (err) => {
+		ytDlp.on('error', err => {
 			setIsDownloading(false);
-			addMessage('error', `Failed to start yt-dlp: ${err.message}. Is yt-dlp installed and in your PATH?`);
+			addMessage(
+				'error',
+				`Failed to start yt-dlp: ${err.message}. Is yt-dlp installed and in your PATH?`,
+			);
 		});
 	};
 
 	const isValidYouTubeUrl = (url: string) => {
-		return /^(https?:\/\/)?([a-zA-Z0-9-]+\.)*(youtube\.com|youtu\.be)\/.+/.test(url);
+		return /^(https?:\/\/)?([a-zA-Z0-9-]+\.)*(youtube\.com|youtu\.be)\/.+/.test(
+			url,
+		);
 	};
 
 	const handleSubmit = (value: string) => {
@@ -290,9 +347,14 @@ export function useAppState() {
 
 		// Autocomplete to the currently selected match
 		if (userInput.startsWith('/')) {
-			if (suggestions.length > 0 && selectedIndex >= 0 && selectedIndex < suggestions.length) {
+			if (
+				suggestions.length > 0 &&
+				selectedIndex >= 0 &&
+				selectedIndex < suggestions.length
+			) {
 				const bestMatch = suggestions[selectedIndex]!;
-				const needsArgs = bestMatch.name === '/download' || bestMatch.name === '/setdir';
+				const needsArgs =
+					bestMatch.name === '/download' || bestMatch.name === '/setdir';
 				const parts = userInput.trim().split(' ');
 				const hasNoArgs = parts.length === 1;
 
@@ -321,13 +383,19 @@ export function useAppState() {
 				clearMessages();
 			} else if (cmd === '/download') {
 				if (args.length === 0) {
-					addMessage('error', 'Please provide a URL to download. Usage: /download <url>');
+					addMessage(
+						'error',
+						'Please provide a URL to download. Usage: /download <url>',
+					);
 				} else {
 					const url = args[0]!;
 					if (isValidYouTubeUrl(url)) {
 						handleDownload(url);
 					} else {
-						addMessage('error', 'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.');
+						addMessage(
+							'error',
+							'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.',
+						);
 					}
 				}
 			} else if (cmd === '/configure') {
@@ -336,9 +404,14 @@ export function useAppState() {
 				handleUpdate();
 			} else if (cmd === '/setdir') {
 				if (args.length === 0) {
-					addMessage('error', `Current directory is: ${config.downloadDir}\nUsage: /setdir <path>`);
+					addMessage(
+						'error',
+						`Current directory is: ${config.downloadDir}\nUsage: /setdir <path>`,
+					);
 				} else {
-					const newDir = path.resolve(args.join(' ').replace(/^~/, os.homedir()));
+					const newDir = path.resolve(
+						args.join(' ').replace(/^~/, os.homedir()),
+					);
 					if (fs.existsSync(newDir)) {
 						setDownloadDir(newDir);
 						addMessage('system', `Download directory updated to: ${newDir}`);
@@ -347,7 +420,7 @@ export function useAppState() {
 					}
 				}
 			} else if (cmd === '/exit') {
-				exit();
+				quitApp();
 			} else {
 				addMessage('error', `Unknown command: ${cmd}`);
 			}
@@ -356,7 +429,10 @@ export function useAppState() {
 			if (isValidYouTubeUrl(userInput)) {
 				handleDownload(userInput);
 			} else {
-				addMessage('error', 'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.');
+				addMessage(
+					'error',
+					'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.',
+				);
 			}
 		}
 	};
@@ -372,6 +448,6 @@ export function useAppState() {
 		helpTab,
 		inputKey,
 		suggestions,
-		handleSubmit
+		handleSubmit,
 	};
 }

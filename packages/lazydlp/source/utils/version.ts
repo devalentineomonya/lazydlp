@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
 import os from 'node:os';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,7 +32,11 @@ export const getYtDlpVersion = (): string => {
 	} catch {}
 
 	try {
-		const customPath = path.join(os.homedir(), '.lazydlp', os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+		const customPath = path.join(
+			os.homedir(),
+			'.lazydlp',
+			os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+		);
 		if (fs.existsSync(customPath)) {
 			const sys = spawnSync(customPath, ['--version']);
 			if (sys.status === 0) {

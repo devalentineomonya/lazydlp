@@ -1,16 +1,16 @@
 {
-	"name": "lazydlp-monorepo",
-	"version": "0.0.0",
-	"private": true,
-	"workspaces": [
-		"packages/*",
-		"apps/*"
-	],
-	"scripts": {
-		"dev:web": "bun --cwd apps/web run dev",
-		"dev:cli": "bun --cwd packages/lazydlp run dev",
-		"build:web": "bun --cwd apps/web run build",
-		"build:cli": "bun --cwd packages/lazydlp run build",
-		"start:cli": "bun --cwd packages/lazydlp run dist/app.js"
-	}
+  "name": "lazydlp-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "bun --cwd apps/web run dev",
+    "dev:cli": "bun --cwd packages/lazydlp run dev",
+    "build:web": "bun --cwd apps/web run build",
+    "build:cli": "bun --cwd packages/lazydlp run build",
+    "start:cli": "bun --cwd packages/lazydlp run dist/app.js"
+  }
 }

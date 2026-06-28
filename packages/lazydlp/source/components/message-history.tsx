@@ -1,13 +1,13 @@
-import { Box, Text } from 'ink';
+import {Box, Text} from 'ink';
 import React from 'react';
-import { Message } from '../types/types.js';
-import { theme } from '../utils/theme.js';
+import {Message} from '../types/types.js';
+import {theme} from '../utils/theme.js';
 
 type Props = {
 	history: Message[];
 };
 
-export default function MessageHistory({ history }: Props) {
+export default function MessageHistory({history}: Props) {
 	return (
 		<Box flexDirection="column" marginBottom={1}>
 			{history.map(msg => (
@@ -20,19 +20,19 @@ export default function MessageHistory({ history }: Props) {
 					)}
 					{msg.type === 'system' && (
 						<Box paddingLeft={0}>
-							<Text color={theme.dim}>└  </Text>
+							<Text color={theme.dim}>└ </Text>
 							<Text color={theme.success}>{msg.text}</Text>
 						</Box>
 					)}
 					{msg.type === 'error' && (
 						<Box paddingLeft={0}>
-							<Text color={theme.dim}>└  </Text>
+							<Text color={theme.dim}>└ </Text>
 							<Text color={theme.error}>{msg.text}</Text>
 						</Box>
 					)}
 					{msg.type === 'yt-dlp' && (
 						<Box paddingLeft={0}>
-							<Text color={theme.dim}>└  </Text>
+							<Text color={theme.dim}>└ </Text>
 							<Text dimColor>{msg.text}</Text>
 						</Box>
 					)}

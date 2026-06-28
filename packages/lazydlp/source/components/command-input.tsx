@@ -1,7 +1,7 @@
-import { Box, Text } from 'ink';
+import {Box, Text} from 'ink';
 import TextInput from 'ink-text-input';
 import React from 'react';
-import { theme } from '../utils/theme.js';
+import {theme} from '../utils/theme.js';
 
 export type Suggestion = {
 	name: string;
@@ -25,7 +25,7 @@ export default function CommandInput({
 	isDownloading,
 	suggestions,
 	selectedIndex,
-	inputKey
+	inputKey,
 }: Props) {
 	const VISIBLE_COUNT = 5;
 	let startIdx = Math.max(0, selectedIndex - Math.floor(VISIBLE_COUNT / 2));
@@ -67,9 +67,7 @@ export default function CommandInput({
 
 			{suggestions.length > 0 && !isDownloading && (
 				<Box flexDirection="column" marginTop={0} paddingX={1}>
-					{moreAbove > 0 && (
-						<Text color={theme.dim}>  ↑ {moreAbove} more</Text>
-					)}
+					{moreAbove > 0 && <Text color={theme.dim}> ↑ {moreAbove} more</Text>}
 					{visibleSuggestions.map((s, idx) => {
 						const realIndex = startIdx + idx;
 						const isSelected = realIndex === selectedIndex;
@@ -77,16 +75,17 @@ export default function CommandInput({
 							<Box key={s.name} flexDirection="row">
 								<Box width={20}>
 									<Text color={isSelected ? theme.secondary : theme.dim}>
-										{isSelected ? '❯ ' : '  '}{s.name}
+										{isSelected ? '❯ ' : '  '}
+										{s.name}
 									</Text>
 								</Box>
-								<Text color={isSelected ? theme.secondary : theme.dim}>{s.description}</Text>
+								<Text color={isSelected ? theme.secondary : theme.dim}>
+									{s.description}
+								</Text>
 							</Box>
 						);
 					})}
-					{moreBelow > 0 && (
-						<Text color={theme.dim}>  ↓ {moreBelow} more</Text>
-					)}
+					{moreBelow > 0 && <Text color={theme.dim}> ↓ {moreBelow} more</Text>}
 				</Box>
 			)}
 		</Box>
