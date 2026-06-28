@@ -1,5 +1,5 @@
 import {Box, Text} from 'ink';
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {theme} from '../utils/theme.js';
 import {APP_VERSION} from '../utils/version.js';
 import Logo from './logo.js';
@@ -8,6 +8,35 @@ import {useConfigStore} from '../store/config-store.js';
 export default function WelcomeHeader() {
 	const {config} = useConfigStore();
 	const recents = config.recentDownloads.slice(0, 3);
+	
+	const [width, setWidth] = useState(process.stdout.columns || 80);
+
+	useEffect(() => {
+		const onResize = () => setWidth(process.stdout.columns);
+		process.stdout.on('resize', onResize);
+		return () => {
+			process.stdout.off('resize', onResize);
+		};
+	}, []);
+
+	if (width < 85) {
+		return (
+			<Box
+				borderStyle="round"
+				borderColor={theme.primary}
+				paddingX={1}
+				paddingY={1}
+				flexDirection="column"
+				alignItems="center"
+				marginBottom={1}
+			>
+				<Text bold>Welcome back!</Text>
+				<Logo />
+				<Text color={theme.dim}>Lazydlp v{APP_VERSION}</Text>
+				<Text color={theme.dim}>~{config.downloadDir}</Text>
+			</Box>
+		);
+	}
 
 	return (
 		<Box
