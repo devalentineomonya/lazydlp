@@ -9,6 +9,7 @@ import https from 'node:https';
 import { theme } from './theme.js';
 import { Message } from './types.js';
 import { loadConfig, saveConfig, Config } from './config.js';
+import { resetYtDlpVersionCache } from './version.js';
 
 import WelcomeHeader from './components/welcome-header.js';
 import MessageHistory from './components/message-history.js';
@@ -161,6 +162,7 @@ export default function App() {
 					if (platform !== 'win32') {
 						fs.chmodSync(destPath, 0o755);
 					}
+					resetYtDlpVersionCache();
 					setIsDownloading(false);
 					setHistory(prev => prev.map(msg =>
 						msg.id === currentLogId ? { ...msg, text: `yt-dlp successfully installed to ${destPath}` } : msg

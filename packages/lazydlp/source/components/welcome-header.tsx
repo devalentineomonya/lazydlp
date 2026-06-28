@@ -2,6 +2,7 @@ import React from 'react';
 import {Box, Text} from 'ink';
 import Logo from './logo.js';
 import { theme } from '../theme.js';
+import { APP_VERSION } from '../version.js';
 
 export default function WelcomeHeader() {
 	return (
@@ -16,7 +17,7 @@ export default function WelcomeHeader() {
 			<Box flexDirection="column" width="30%" alignItems="center">
 				<Text bold>Welcome back!</Text>
 				<Logo />
-				<Text color={theme.dim}>YT-DLP v1.2.1</Text>
+				<Text color={theme.dim}>v{APP_VERSION}</Text>
 			</Box>
 			<Box 
 				borderStyle="single" 
