@@ -1,6 +1,6 @@
+import { Box, Text } from 'ink';
 import React from 'react';
-import {Box, Text} from 'ink';
-import { theme } from '../theme.js';
+import { theme } from '../utils/theme.js';
 
 type Props = {
 	ctrlCPressed: boolean;

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { theme } from '../theme.js';
-import { APP_VERSION, getYtDlpVersion } from '../version.js';
+import React, { useState } from 'react';
+import { theme } from '../utils/theme.js';
+import { APP_VERSION, getYtDlpVersion } from '../utils/version.js';
 
 export default function HelpMenu() {
 	const [activeTab, setActiveTab] = useState(0);
@@ -19,7 +19,7 @@ export default function HelpMenu() {
 		<Box flexDirection="column" paddingY={1}>
 			<Box flexDirection="row" marginBottom={1}>
 				<Text color={theme.link} bold>Lazydlp v{APP_VERSION}</Text>
-				
+
 				{tabs.map((tab, index) => {
 					const isActive = index === activeTab;
 					return (
@@ -34,12 +34,12 @@ export default function HelpMenu() {
 				})}
 			</Box>
 
-			<Box 
-				borderStyle="single" 
-				borderColor={theme.link} 
-				borderTop={false} 
-				borderLeft={false} 
-				borderRight={false} 
+			<Box
+				borderStyle="single"
+				borderColor={theme.link}
+				borderTop={false}
+				borderLeft={false}
+				borderRight={false}
 				marginBottom={1}
 			/>
 

@@ -1,7 +1,7 @@
-import React from 'react';
-import {Box, Text} from 'ink';
+import { Box, Text } from 'ink';
 import TextInput from 'ink-text-input';
-import { theme } from '../theme.js';
+import React from 'react';
+import { theme } from '../utils/theme.js';
 
 export type Suggestion = {
 	name: string;
@@ -29,11 +29,11 @@ export default function CommandInput({
 }: Props) {
 	return (
 		<Box flexDirection="column">
-			<Box 
+			<Box
 				flexDirection="row"
-				borderStyle="single" 
-				borderColor={theme.border} 
-				borderLeft={false} 
+				borderStyle="single"
+				borderColor={theme.border}
+				borderLeft={false}
 				borderRight={false}
 				paddingY={0}
 				paddingX={1}

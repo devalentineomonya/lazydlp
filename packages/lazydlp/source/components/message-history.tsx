@@ -1,7 +1,7 @@
+import { Box, Text } from 'ink';
 import React from 'react';
-import {Box, Text} from 'ink';
-import { theme } from '../theme.js';
-import { Message } from '../types.js';
+import { Message } from '../types/types.js';
+import { theme } from '../utils/theme.js';
 
 type Props = {
 	history: Message[];
