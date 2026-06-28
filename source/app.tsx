@@ -1,6 +1,10 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text, useInput, useApp} from 'ink';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import https from 'node:https';
 import { theme } from './theme.js';
 import { Message } from './types.js';
 
@@ -14,6 +18,7 @@ export const COMMANDS = [
 	{ name: '/help', description: 'Show this help message' },
 	{ name: '/clear', description: 'Clear terminal history' },
 	{ name: '/download', description: 'Download a video [url]' },
+	{ name: '/configure', description: 'Download and setup yt-dlp' },
 	{ name: '/setdir', description: 'Set download directory [path]' },
 	{ name: '/exit', description: 'Exit Lazydlp' }
 ];
@@ -75,11 +80,103 @@ export default function App() {
 		setHistory(prev => [...prev, { id: Math.random().toString(), type, text }]);
 	};
 
+	const getDlpPath = () => {
+		try {
+			const sys = spawnSync('yt-dlp', ['--version']);
+			if (sys.status === 0) return 'yt-dlp';
+		} catch {}
+
+		const customPath = path.join(os.homedir(), '.lazydlp', os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+		if (fs.existsSync(customPath)) return customPath;
+
+		return null;
+	};
+
+	const handleConfigure = () => {
+		setIsDownloading(true);
+		addMessage('system', 'Configuring Lazydlp: Downloading yt-dlp...');
+
+		const platform = os.platform();
+		let filename = 'yt-dlp';
+		if (platform === 'win32') filename = 'yt-dlp.exe';
+		else if (platform === 'darwin') filename = 'yt-dlp_macos';
+		else if (platform === 'linux') filename = 'yt-dlp_linux';
+
+		const url = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${filename}`;
+		const targetDir = path.join(os.homedir(), '.lazydlp');
+		if (!fs.existsSync(targetDir)) {
+			fs.mkdirSync(targetDir, { recursive: true });
+		}
+
+		const destPath = path.join(targetDir, platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+		const file = fs.createWriteStream(destPath);
+		const currentLogId = Math.random().toString();
+		setHistory(prev => [...prev, { id: currentLogId, type: 'system', text: 'Connecting...' }]);
+
+		const download = (urlStr: string) => {
+			https.get(urlStr, (response) => {
+				if (response.statusCode === 301 || response.statusCode === 302) {
+					return download(response.headers.location!);
+				}
+				if (response.statusCode !== 200) {
+					addMessage('error', `Download failed with status ${response.statusCode}`);
+					setIsDownloading(false);
+					return;
+				}
+
+				const total = parseInt(response.headers['content-length'] || '0', 10);
+				let downloaded = 0;
+				let lastUpdate = 0;
+
+				response.on('data', (chunk) => {
+					downloaded += chunk.length;
+					const now = Date.now();
+					if (total > 0 && now - lastUpdate > 100) {
+						lastUpdate = now;
+						const percent = Math.round((downloaded / total) * 100);
+						const barWidth = 30;
+						const filled = Math.round((percent / 100) * barWidth);
+						const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled);
+						
+						setHistory(prev => prev.map(msg =>
+							msg.id === currentLogId ? { ...msg, text: `Downloading yt-dlp: [${bar}] ${percent}%` } : msg
+						));
+					}
+				});
+
+				response.pipe(file);
+
+				file.on('finish', () => {
+					file.close();
+					if (platform !== 'win32') {
+						fs.chmodSync(destPath, 0o755);
+					}
+					setIsDownloading(false);
+					setHistory(prev => prev.map(msg =>
+						msg.id === currentLogId ? { ...msg, text: `yt-dlp successfully installed to ${destPath}` } : msg
+					));
+				});
+			}).on('error', (err) => {
+				fs.unlink(destPath, () => {});
+				setIsDownloading(false);
+				addMessage('error', `Download error: ${err.message}`);
+			});
+		};
+
+		download(url);
+	};
+
 	const handleDownload = (url: string) => {
+		const dlpPath = getDlpPath();
+		if (!dlpPath) {
+			addMessage('error', 'yt-dlp is not installed. Please run /configure to download and set it up.');
+			return;
+		}
+
 		setIsDownloading(true);
 		addMessage('system', `Starting download for: ${url}`);
 
-		const ytDlp = spawn('yt-dlp', [url]);
+		const ytDlp = spawn(dlpPath, [url]);
 		let currentLogId = Math.random().toString();
 		let outputBuffer = '';
 
@@ -185,6 +282,8 @@ export default function App() {
 						addMessage('error', 'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.');
 					}
 				}
+			} else if (cmd === '/configure') {
+				handleConfigure();
 			} else if (cmd === '/setdir') {
 				addMessage('system', `Set dir logic not fully implemented yet. Provided: ${args.join(' ')}`);
 			} else if (cmd === '/exit') {
