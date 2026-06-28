@@ -101,10 +101,6 @@ export default function HelpMenu() {
 			<Box marginBottom={1}>
 				<Text>For more help: <Text color={theme.link}>https://github.com/yt-dlp/yt-dlp</Text></Text>
 			</Box>
-
-			<Box>
-				<Text color={theme.dim} italic>Esc to close</Text>
-			</Box>
 		</Box>
 	);
 }

@@ -374,7 +374,7 @@ export default function App() {
 				/>
 			)}
 
-			<StatusBar ctrlCPressed={ctrlCPressed} />
+			<StatusBar ctrlCPressed={ctrlCPressed} showHelp={showHelp} />
 		</Box>
 	);
 }
