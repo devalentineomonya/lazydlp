@@ -1,6 +1,6 @@
 {
 	"name": "lazydlp",
-	"version": "0.0.1",
+	"version": "0.0.3",
 	"license": "MIT",
 	"bin": "dist/app.js",
 	"type": "module",
@@ -20,7 +20,7 @@
 	"dependencies": {
 		"@types/ink-text-input": "^2.0.5",
 		"ink": "^4.1.0",
-		"ink-text-input": "^6.0.0",
+		"ink-text-input": "^5.0.1",
 		"react": "^18.2.0",
 		"zod": "^4.4.3",
 		"zustand": "^5.0.14"
