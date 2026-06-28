@@ -5,14 +5,14 @@ import { theme } from '../theme.js';
 export default function Logo() {
 	return (
 		<Box flexDirection="column" alignItems="center" marginY={1}>
-			<Text color={theme.link}>   ████████   </Text>
-			<Text color={theme.link}> ██        ██ </Text>
-			<Text color={theme.link}> ██ ▀▀  ▀▀ ██ </Text>
-			<Text color={theme.link}>██████████████</Text>
-			<Text color={theme.link}>████  ██  ████</Text>
-			<Text color={theme.link}>  ██████████  </Text>
-			<Text color={theme.link}>    ██████    </Text>
-			<Text color={theme.link}>      ██      </Text>
+			<Text color={theme.primaryBright}>   ████████   </Text>
+			<Text color={theme.primaryBright}> ██        ██ </Text>
+			<Text color={theme.primaryBright}> ██ ▀▀  ▀▀ ██ </Text>
+			<Text color={theme.primaryBright}>██████████████</Text>
+			<Text color={theme.primaryBright}>████  ██  ████</Text>
+			<Text color={theme.primaryBright}>  ██████████  </Text>
+			<Text color={theme.primaryBright}>    ██████    </Text>
+			<Text color={theme.primaryBright}>      ██      </Text>
 		</Box>
 	);
 }

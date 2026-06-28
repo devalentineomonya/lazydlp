@@ -1,5 +1,6 @@
 export const theme = {
 	primary: '#ee5b0e', // Primary brand color
+	primaryBright: '#ff7b30', // Brighter version for logo
 	secondary: 'cyan',
 	error: 'red',
 	success: 'green',
