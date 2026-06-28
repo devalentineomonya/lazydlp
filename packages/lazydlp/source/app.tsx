@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-import { Box, render, Text } from 'ink';
+import {Box, render, Text} from 'ink';
 import React from 'react';
-import { theme } from './utils/theme.js';
+import {theme} from './utils/theme.js';
 
 import CommandInput from './components/command-input.js';
 import HelpMenu from './components/help-menu.js';
 import MessageHistory from './components/message-history.js';
 import StatusBar from './components/status-bar.js';
 import WelcomeHeader from './components/welcome-header.js';
-import { useAppState } from './hooks/use-app-state.js';
+import {useAppState} from './hooks/use-app-state.js';
 
 export default function App() {
 	const {
@@ -22,7 +22,7 @@ export default function App() {
 		helpTab,
 		inputKey,
 		suggestions,
-		handleSubmit
+		handleSubmit,
 	} = useAppState();
 
 	return (
@@ -31,7 +31,9 @@ export default function App() {
 
 			{history.length < 5 && (
 				<Box marginBottom={1}>
-					<Text color={theme.dim}>↑ Lazydlp now supports streaming downloads directly to this TUI</Text>
+					<Text color={theme.dim}>
+						↑ Lazydlp now supports streaming downloads directly to this TUI
+					</Text>
 				</Box>
 			)}
 
@@ -56,4 +58,4 @@ export default function App() {
 	);
 }
 
-render(<App />, { exitOnCtrlC: false });
+render(<App />, {exitOnCtrlC: false});
