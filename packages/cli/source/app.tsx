@@ -8,6 +8,7 @@ import os from 'node:os';
 import https from 'node:https';
 import { theme } from './theme.js';
 import { Message } from './types.js';
+import { loadConfig, saveConfig, Config } from './config.js';
 
 import WelcomeHeader from './components/welcome-header.js';
 import MessageHistory from './components/message-history.js';
@@ -20,11 +21,13 @@ export const COMMANDS = [
 	{ name: '/clear', description: 'Clear terminal history' },
 	{ name: '/download', description: 'Download a video [url]' },
 	{ name: '/configure', description: 'Download and setup yt-dlp' },
+	{ name: '/update', description: 'Update lazydlp and yt-dlp' },
 	{ name: '/setdir', description: 'Set download directory [path]' },
 	{ name: '/exit', description: 'Exit Lazydlp' }
 ];
 
 export default function App() {
+	const [config, setConfig] = useState<Config>(loadConfig());
 	const [input, setInput] = useState('');
 	const [history, setHistory] = useState<Message[]>([]);
 	const [isDownloading, setIsDownloading] = useState(false);
@@ -93,7 +96,13 @@ export default function App() {
 		return null;
 	};
 
-	const handleConfigure = () => {
+	const handleConfigure = (forceDownload = false) => {
+		const existingPath = getDlpPath();
+		if (existingPath && !forceDownload) {
+			addMessage('system', `yt-dlp is already installed at: ${existingPath}. Use /update to force an update.`);
+			return;
+		}
+
 		setIsDownloading(true);
 		addMessage('system', 'Configuring Lazydlp: Downloading yt-dlp...');
 
@@ -167,6 +176,26 @@ export default function App() {
 		download(url);
 	};
 
+	const handleUpdate = () => {
+		addMessage('system', 'Updating lazydlp CLI and yt-dlp...');
+		
+		const npmUpdate = spawn('npm', ['install', '-g', 'lazydlp@latest']);
+		npmUpdate.on('close', (code) => {
+			if (code === 0) {
+				addMessage('system', 'lazydlp CLI updated to the latest version.');
+			} else {
+				addMessage('error', 'Failed to update lazydlp CLI automatically.');
+			}
+			// Always force an update of yt-dlp
+			handleConfigure(true);
+		});
+		
+		npmUpdate.on('error', (err) => {
+			addMessage('error', `Update error: ${err.message}`);
+			handleConfigure(true);
+		});
+	};
+
 	const handleDownload = (url: string) => {
 		const dlpPath = getDlpPath();
 		if (!dlpPath) {
@@ -177,7 +206,7 @@ export default function App() {
 		setIsDownloading(true);
 		addMessage('system', `Starting download for: ${url}`);
 
-		const ytDlp = spawn(dlpPath, [url]);
+		const ytDlp = spawn(dlpPath, ['-P', config.downloadDir, url]);
 		let currentLogId = Math.random().toString();
 		let outputBuffer = '';
 
@@ -232,7 +261,11 @@ export default function App() {
 		ytDlp.on('close', (code) => {
 			setIsDownloading(false);
 			if (code === 0) {
-				addMessage('system', `Download completed successfully.`);
+				addMessage('system', `Download completed successfully to ${config.downloadDir}.`);
+				const newRecents = [{ url, date: new Date().toISOString() }, ...config.recentDownloads.filter(r => r.url !== url)].slice(0, 10);
+				const newConfig = { ...config, recentDownloads: newRecents };
+				setConfig(newConfig);
+				saveConfig(newConfig);
 			} else {
 				addMessage('error', `yt-dlp exited with code ${code}`);
 			}
@@ -284,9 +317,23 @@ export default function App() {
 					}
 				}
 			} else if (cmd === '/configure') {
-				handleConfigure();
+				handleConfigure(false);
+			} else if (cmd === '/update') {
+				handleUpdate();
 			} else if (cmd === '/setdir') {
-				addMessage('system', `Set dir logic not fully implemented yet. Provided: ${args.join(' ')}`);
+				if (args.length === 0) {
+					addMessage('error', `Current directory is: ${config.downloadDir}\nUsage: /setdir <path>`);
+				} else {
+					const newDir = path.resolve(args.join(' ').replace(/^~/, os.homedir()));
+					if (fs.existsSync(newDir)) {
+						const newConfig = { ...config, downloadDir: newDir };
+						setConfig(newConfig);
+						saveConfig(newConfig);
+						addMessage('system', `Download directory updated to: ${newDir}`);
+					} else {
+						addMessage('error', `Directory does not exist: ${newDir}`);
+					}
+				}
 			} else if (cmd === '/exit') {
 				exit();
 			} else {
