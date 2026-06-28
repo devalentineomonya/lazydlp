@@ -1,5 +1,6 @@
+#!/usr/bin/env node
 import React, {useState, useEffect} from 'react';
-import {Box, Text, useInput, useApp} from 'ink';
+import {render, Box, Text, useInput, useApp} from 'ink';
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -330,3 +331,5 @@ export default function App() {
 		</Box>
 	);
 }
+
+render(<App />, { exitOnCtrlC: false });
