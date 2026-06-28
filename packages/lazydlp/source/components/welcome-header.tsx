@@ -44,9 +44,24 @@ export default function WelcomeHeader() {
 				<Text color={theme.primary} bold>Recent activity</Text>
 				{recents.length > 0 ? (
 					recents.map((recent, i) => (
-						<Text key={i} color={theme.dim} wrap="truncate-end">
-							• {recent.title || recent.url}
-						</Text>
+						<Box key={i} flexDirection="column">
+							<Text color={theme.text} wrap="truncate-end" bold>
+								{recent.title || 'Unknown Title'}
+							</Text>
+							<Text color={theme.dim} wrap="truncate-end">
+								{recent.url}
+							</Text>
+							{i < recents.length - 1 && (
+								<Box
+									borderStyle="single"
+									borderColor={theme.border}
+									borderTop={false}
+									borderLeft={false}
+									borderRight={false}
+									marginBottom={1}
+								/>
+							)}
+						</Box>
 					))
 				) : (
 					<Text color={theme.dim}>No recent downloads</Text>

@@ -1,16 +1,16 @@
 import { Box, Text, useInput } from 'ink';
 import React, { useState } from 'react';
 import { theme } from '../utils/theme.js';
-import { APP_VERSION, getYtDlpVersion } from '../utils/version.js';
+import { getYtDlpVersion } from '../utils/version.js';
 
 export default function HelpMenu() {
 	const [activeTab, setActiveTab] = useState(0);
-	const tabs = ['general', 'options', 'extra'];
+	const tabs = ['general', 'commands', 'shortcuts'];
 
 	useInput((_, key) => {
 		if (key.leftArrow) {
 			setActiveTab(prev => Math.max(0, prev - 1));
-		} else if (key.rightArrow) {
+		} else if (key.rightArrow || key.tab) {
 			setActiveTab(prev => Math.min(tabs.length - 1, prev + 1));
 		}
 	});
@@ -18,20 +18,21 @@ export default function HelpMenu() {
 	return (
 		<Box flexDirection="column" paddingY={1}>
 			<Box flexDirection="row" marginBottom={1}>
-				<Text color={theme.link} bold>Lazydlp v{APP_VERSION}</Text>
+				<Text color={theme.link} bold>Lazydlp</Text>
 
 				{tabs.map((tab, index) => {
 					const isActive = index === activeTab;
 					return (
-						<Box key={tab} marginX={index === 0 ? 2 : 0} marginRight={2} paddingX={isActive ? 1 : 0}>
+						<Box key={tab} marginX={index === 0 ? 2 : 0} marginRight={2}>
 							{isActive ? (
-								<Text backgroundColor={theme.link} color={theme.text}> {tab} </Text>
+								<Text color={theme.link} underline> {tab} </Text>
 							) : (
 								<Text color={theme.dim}>{tab}</Text>
 							)}
 						</Box>
 					);
 				})}
+				<Text color={theme.dim}>  (←/→ to cycle)</Text>
 			</Box>
 
 			<Box
@@ -66,22 +67,16 @@ export default function HelpMenu() {
 			{activeTab === 1 && (
 				<Box flexDirection="column">
 					<Box marginBottom={1}>
-						<Text>Available commands to interact with lazydlp.</Text>
+						<Text bold>Available Commands</Text>
 					</Box>
-					<Box flexDirection="row" marginBottom={1}>
-						<Box flexDirection="column" width="33%">
-							<Text>/help <Text color={theme.dim}>show menus</Text></Text>
-							<Text>/clear <Text color={theme.dim}>clear history</Text></Text>
-							<Text>/exit <Text color={theme.dim}>close app</Text></Text>
-						</Box>
-						<Box flexDirection="column" width="33%">
-							<Text>/download <Text color={theme.dim}>&lt;url&gt;</Text></Text>
-							<Text>/setdir <Text color={theme.dim}>&lt;path&gt;</Text></Text>
-						</Box>
-						<Box flexDirection="column" width="33%">
-							<Text>ctrl + c <Text color={theme.dim}>exit manually</Text></Text>
-							<Text>esc <Text color={theme.dim}>cancel dialogs</Text></Text>
-						</Box>
+					<Box flexDirection="column" marginBottom={1}>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>/download</Text></Box><Text color={theme.dim}>Download a video URL</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>/setdir</Text></Box><Text color={theme.dim}>Change download directory</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>/update</Text></Box><Text color={theme.dim}>Update lazydlp & yt-dlp</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>/configure</Text></Box><Text color={theme.dim}>Run setup wizard</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>/clear</Text></Box><Text color={theme.dim}>Clear message history</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>/help</Text></Box><Text color={theme.dim}>Show this menu</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>/exit</Text></Box><Text color={theme.dim}>Close application</Text></Box>
 					</Box>
 				</Box>
 			)}
@@ -89,12 +84,14 @@ export default function HelpMenu() {
 			{activeTab === 2 && (
 				<Box flexDirection="column">
 					<Box marginBottom={1}>
-						<Text>Extra arguments and advanced instructions for yt-dlp.</Text>
+						<Text bold>Keyboard Shortcuts</Text>
 					</Box>
 					<Box flexDirection="column" marginBottom={1}>
-						<Text>• <Text color={theme.link}>Audio Only:</Text> Add <Text color={theme.dim}>--extract-audio</Text> to fetch mp3</Text>
-						<Text>• <Text color={theme.link}>Format Selection:</Text> Add <Text color={theme.dim}>-f bestvideo+bestaudio</Text></Text>
-						<Text>• <Text color={theme.link}>Subtitles:</Text> Add <Text color={theme.dim}>--write-subs</Text> for captions</Text>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>↑ / ↓</Text></Box><Text color={theme.dim}>Navigate suggestions</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>← / →</Text></Box><Text color={theme.dim}>Switch tab view</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>enter</Text></Box><Text color={theme.dim}>Execute command</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>esc</Text></Box><Text color={theme.dim}>Close dialog / cancel</Text></Box>
+						<Box flexDirection="row"><Box width={20}><Text color={theme.link}>ctrl + c</Text></Box><Text color={theme.dim}>Force exit</Text></Box>
 					</Box>
 				</Box>
 			)}

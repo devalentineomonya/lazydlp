@@ -27,6 +27,19 @@ export default function CommandInput({
 	selectedIndex,
 	inputKey
 }: Props) {
+	const VISIBLE_COUNT = 5;
+	let startIdx = Math.max(0, selectedIndex - Math.floor(VISIBLE_COUNT / 2));
+	let endIdx = startIdx + VISIBLE_COUNT;
+
+	if (endIdx > suggestions.length) {
+		endIdx = suggestions.length;
+		startIdx = Math.max(0, endIdx - VISIBLE_COUNT);
+	}
+
+	const visibleSuggestions = suggestions.slice(startIdx, endIdx);
+	const moreAbove = startIdx;
+	const moreBelow = suggestions.length - endIdx;
+
 	return (
 		<Box flexDirection="column">
 			<Box
@@ -54,17 +67,26 @@ export default function CommandInput({
 
 			{suggestions.length > 0 && !isDownloading && (
 				<Box flexDirection="column" marginTop={0} paddingX={1}>
-					{suggestions.map((s, index) => {
-						const isSelected = index === selectedIndex;
+					{moreAbove > 0 && (
+						<Text color={theme.dim}>  ↑ {moreAbove} more</Text>
+					)}
+					{visibleSuggestions.map((s, idx) => {
+						const realIndex = startIdx + idx;
+						const isSelected = realIndex === selectedIndex;
 						return (
 							<Box key={s.name} flexDirection="row">
 								<Box width={20}>
-									<Text color={isSelected ? theme.secondary : theme.dim}>{s.name}</Text>
+									<Text color={isSelected ? theme.secondary : theme.dim}>
+										{isSelected ? '❯ ' : '  '}{s.name}
+									</Text>
 								</Box>
 								<Text color={isSelected ? theme.secondary : theme.dim}>{s.description}</Text>
 							</Box>
 						);
 					})}
+					{moreBelow > 0 && (
+						<Text color={theme.dim}>  ↓ {moreBelow} more</Text>
+					)}
 				</Box>
 			)}
 		</Box>
