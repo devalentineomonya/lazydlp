@@ -19,6 +19,7 @@ export default function App() {
 		selectedIndex,
 		ctrlCPressed,
 		showHelp,
+		helpTab,
 		inputKey,
 		suggestions,
 		handleSubmit
@@ -37,7 +38,7 @@ export default function App() {
 			<MessageHistory history={history} />
 
 			{showHelp ? (
-				<HelpMenu />
+				<HelpMenu initialTab={helpTab} />
 			) : (
 				<CommandInput
 					input={input}

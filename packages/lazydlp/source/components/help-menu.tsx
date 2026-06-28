@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { theme } from '../utils/theme.js';
 import { getYtDlpVersion } from '../utils/version.js';
 
-export default function HelpMenu() {
-	const [activeTab, setActiveTab] = useState(0);
+export default function HelpMenu({ initialTab = 0 }: { initialTab?: number }) {
+	const [activeTab, setActiveTab] = useState(initialTab);
 	const tabs = ['general', 'commands', 'shortcuts'];
 
 	useInput((_, key) => {

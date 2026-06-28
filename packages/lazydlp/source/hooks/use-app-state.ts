@@ -20,6 +20,7 @@ export function useAppState() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [ctrlCPressed, setCtrlCPressed] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
+	const [helpTab, setHelpTab] = useState(0);
 	const [inputKey, setInputKey] = useState(0);
 	const { exit } = useApp();
 
@@ -42,6 +43,12 @@ export function useAppState() {
 				setShowHelp(false);
 				addMessage('system', 'Help dialog dismissed');
 			}
+			return;
+		}
+
+		if (inputChar === '?' && input.trim() === '') {
+			setShowHelp(true);
+			setHelpTab(2);
 			return;
 		}
 
@@ -309,6 +316,7 @@ export function useAppState() {
 
 			if (cmd === '/help') {
 				setShowHelp(true);
+				setHelpTab(0);
 			} else if (cmd === '/clear') {
 				clearMessages();
 			} else if (cmd === '/download') {
@@ -361,6 +369,7 @@ export function useAppState() {
 		selectedIndex,
 		ctrlCPressed,
 		showHelp,
+		helpTab,
 		inputKey,
 		suggestions,
 		handleSubmit
