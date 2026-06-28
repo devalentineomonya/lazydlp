@@ -15,6 +15,7 @@ type Props = {
 	isDownloading: boolean;
 	suggestions: Suggestion[];
 	selectedIndex: number;
+	inputKey: number;
 };
 
 export default function CommandInput({
@@ -23,7 +24,8 @@ export default function CommandInput({
 	onSubmit,
 	isDownloading,
 	suggestions,
-	selectedIndex
+	selectedIndex,
+	inputKey
 }: Props) {
 	return (
 		<Box flexDirection="column">
@@ -41,6 +43,7 @@ export default function CommandInput({
 				</Text>
 				{!isDownloading && (
 					<TextInput
+						key={inputKey}
 						value={input}
 						onChange={setInput}
 						onSubmit={onSubmit}

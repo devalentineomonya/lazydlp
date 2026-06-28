@@ -35,6 +35,7 @@ export default function App() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [ctrlCPressed, setCtrlCPressed] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
+	const [inputKey, setInputKey] = useState(0);
 	const { exit } = useApp();
 
 	// Filter suggestions dynamically based on input
@@ -298,6 +299,7 @@ export default function App() {
 
 				if (needsArgs && hasNoArgs && !userInput.endsWith(' ')) {
 					setInput(bestMatch.name + ' ');
+					setInputKey(prev => prev + 1);
 					return;
 				}
 
@@ -383,6 +385,7 @@ export default function App() {
 					isDownloading={isDownloading}
 					suggestions={suggestions}
 					selectedIndex={selectedIndex}
+					inputKey={inputKey}
 				/>
 			)}
 
