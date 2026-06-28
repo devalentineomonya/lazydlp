@@ -3,8 +3,12 @@ import React from 'react';
 import { theme } from '../utils/theme.js';
 import { APP_VERSION } from '../utils/version.js';
 import Logo from './logo.js';
+import { useConfigStore } from '../store/config-store.js';
 
 export default function WelcomeHeader() {
+	const { config } = useConfigStore();
+	const recents = config.recentDownloads.slice(0, 3);
+
 	return (
 		<Box
 			borderStyle="round"
@@ -38,7 +42,15 @@ export default function WelcomeHeader() {
 					borderRight={false}
 				/>
 				<Text color={theme.primary} bold>Recent activity</Text>
-				<Text color={theme.dim}>No recent downloads</Text>
+				{recents.length > 0 ? (
+					recents.map((recent, i) => (
+						<Text key={i} color={theme.dim} wrap="truncate-end">
+							• {recent.url}
+						</Text>
+					))
+				) : (
+					<Text color={theme.dim}>No recent downloads</Text>
+				)}
 			</Box>
 		</Box>
 	);
