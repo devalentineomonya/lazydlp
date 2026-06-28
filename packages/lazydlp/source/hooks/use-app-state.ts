@@ -191,6 +191,16 @@ export function useAppState() {
 		let lastUpdate = 0;
 		let lastDisplay = '';
 
+		let videoTitle: string | undefined;
+		const titleProcess = spawn(dlpPath, ['--print', 'title', url]);
+		titleProcess.stdout.on('data', (data) => {
+			const output = data.toString().trim();
+			if (output && !output.startsWith('WARNING')) {
+				const lines = output.split('\n');
+				videoTitle = lines[lines.length - 1];
+			}
+		});
+
 		const updateLastOutput = (chunk: string, forceUpdate = false) => {
 			outputBuffer += chunk;
 
@@ -250,7 +260,7 @@ export function useAppState() {
 			setIsDownloading(false);
 			if (code === 0) {
 				addMessage('system', `Download completed successfully to ${config.downloadDir}.`);
-				addRecentDownload(url);
+				addRecentDownload(url, videoTitle);
 			} else {
 				addMessage('error', `yt-dlp exited with code ${code}`);
 			}

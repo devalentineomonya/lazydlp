@@ -45,7 +45,7 @@ export default function WelcomeHeader() {
 				{recents.length > 0 ? (
 					recents.map((recent, i) => (
 						<Text key={i} color={theme.dim} wrap="truncate-end">
-							• {recent.url}
+							• {recent.title || recent.url}
 						</Text>
 					))
 				) : (

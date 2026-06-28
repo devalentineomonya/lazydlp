@@ -10,7 +10,8 @@ export const ConfigSchema = z.object({
     downloadDir: z.string(),
     recentDownloads: z.array(z.object({
         url: z.string(),
-        date: z.string()
+        date: z.string(),
+        title: z.string().optional()
     }))
 });
 
