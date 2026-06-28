@@ -1,8 +1,0 @@
-{
-  "max_concurrent": 3,
-  "default_output_dir": ".",
-  "theme": "dark",
-  "show_advanced_options": false,
-  "confirm_before_download": false,
-  "auto_check_updates": true
-}
