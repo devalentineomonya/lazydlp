@@ -188,9 +188,17 @@ export function useAppState() {
 		const ytDlp = spawn(dlpPath, ['-P', config.downloadDir, url], { cwd: config.downloadDir });
 		const currentLogId = addTemporaryMessage('yt-dlp', '...');
 		let outputBuffer = '';
+		let lastUpdate = 0;
+		let lastDisplay = '';
 
-		const updateLastOutput = (chunk: string) => {
+		const updateLastOutput = (chunk: string, forceUpdate = false) => {
 			outputBuffer += chunk;
+
+			const now = Date.now();
+			if (!forceUpdate && now - lastUpdate < 100) {
+				return;
+			}
+			lastUpdate = now;
 
 			const rawLines = outputBuffer.split(/[\n]/);
 			let displayLines: string[] = [];
@@ -222,7 +230,11 @@ export function useAppState() {
 				finalDisplay += `\n\nProgress: [${bar}] ${percent}% | Speed: ${speed} | ETA: ${eta}`;
 			}
 
-			updateMessage(currentLogId, finalDisplay.trim());
+			const newDisplay = finalDisplay.trim();
+			if (newDisplay !== lastDisplay) {
+				updateMessage(currentLogId, newDisplay);
+				lastDisplay = newDisplay;
+			}
 		};
 
 		ytDlp.stdout.on('data', (data) => {
@@ -234,6 +246,7 @@ export function useAppState() {
 		});
 
 		ytDlp.on('close', (code) => {
+			updateLastOutput('', true);
 			setIsDownloading(false);
 			if (code === 0) {
 				addMessage('system', `Download completed successfully to ${config.downloadDir}.`);
