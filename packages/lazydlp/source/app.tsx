@@ -286,17 +286,27 @@ export default function App() {
 	const handleSubmit = (value: string) => {
 		if (!value.trim() || isDownloading) return;
 
-		let userInput = value.trim();
+		let userInput = value;
 
 		// Autocomplete to the currently selected match
 		if (userInput.startsWith('/')) {
 			if (suggestions.length > 0 && selectedIndex >= 0 && selectedIndex < suggestions.length) {
-				const bestMatch = suggestions[selectedIndex];
-				const [, ...args] = userInput.split(' ');
-				userInput = [bestMatch!.name, ...args].join(' ');
+				const bestMatch = suggestions[selectedIndex]!;
+				const needsArgs = bestMatch.name === '/download' || bestMatch.name === '/setdir';
+				const parts = userInput.trim().split(' ');
+				const hasNoArgs = parts.length === 1;
+
+				if (needsArgs && hasNoArgs && !userInput.endsWith(' ')) {
+					setInput(bestMatch.name + ' ');
+					return;
+				}
+
+				const [, ...args] = userInput.trim().split(' ');
+				userInput = [bestMatch.name, ...args].join(' ');
 			}
 		}
 
+		userInput = userInput.trim();
 		setInput('');
 		addMessage('user', userInput);
 
