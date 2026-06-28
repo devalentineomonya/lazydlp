@@ -1,19 +1,22 @@
 # Lazydlp
 
-> A beautiful, interactive terminal UI (TUI) wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp). Built with [Ink](https://github.com/vadimdemedes/ink) (React for the terminal) and inspired by the clean aesthetics of Claude Code.
+> A beautiful ecosystem for interacting with `yt-dlp`. 
+
+This repository contains both a **Terminal User Interface (TUI)** and a **Web Application** that wrap the powerful `yt-dlp` tool into gorgeous, easy-to-use interfaces.
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Running in Dev Mode](#running-in-dev-mode)
-  - [Building for Production](#building-for-production)
+- [Monorepo Structure](#monorepo-structure)
+- [The CLI (TUI)](#the-cli-tui)
+  - [Features](#cli-features)
+  - [Quick Start](#cli-quick-start)
+- [The Web App](#the-web-app)
+  - [Features](#web-app-features)
+  - [Quick Start](#web-app-quick-start)
+- [Development Setup](#development-setup)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -21,65 +24,62 @@
 
 ## Overview
 
-`lazydlp` is an interactive command-line application that wraps `yt-dlp` in a modern, chat-like TUI. Instead of memorising complex flags and options, you interact with a clean terminal interface equipped with an autocomplete command bar, real-time log streaming, and dynamic progress bars.
+Instead of memorizing complex flags and options for `yt-dlp`, Lazydlp gives you clean, interactive interfaces. You can choose to run it directly in your terminal with a chat-like aesthetic, or spin up the web app for a rich browser experience.
 
-## Features
-
-- **Slash Commands**: Type `/help`, `/clear`, `/exit`, or `/download` to interact with the app.
-- **Smart Autocomplete**: Use your arrow keys to quickly select suggestions as you type.
-- **URL Validation**: Built-in validation natively ensures you only feed supported YouTube links.
-- **Live Progress UI**: Streams and parses `yt-dlp` stdout, displaying a clean graphical progress bar and ETA.
-- **Modular Architecture**: Component-based React structure makes it easy to add features and custom styles.
-
----
-
-## Project Structure
+## Monorepo Structure
 
 ```text
 lazydlp/
 │
-├── source/                    # All TypeScript source files
-│   ├── cli.tsx                # Entry point — parses CLI args & mounts the app
-│   ├── app.tsx                # Root component (handles state, history, input)
-│   ├── theme.ts               # Global theme styles
-│   ├── types.ts               # Shared TypeScript interfaces
-│   │
-│   ├── components/            # Modular UI pieces
-│   │   ├── welcome-header.tsx # The top greeting box
-│   │   ├── message-history.tsx# The scrolling chat history view
-│   │   ├── command-input.tsx  # The text input and autocomplete view
-│   │   ├── status-bar.tsx     # The bottom status footer
-│   │   ├── help-menu.tsx      # The tabbed help/options dialog
-│   │   └── logo.tsx           # ASCII logo
+├── apps/
+│   └── web/                   # The modern React/Vite Web Application
 │
-├── package.json               # Node metadata, scripts, dependencies
-├── tsconfig.json              # TypeScript configuration
+├── packages/
+│   └── lazydlp/               # The interactive Ink/React CLI (TUI)
+│
+├── package.json               # Root monorepo workspace config
 └── README.md                  # You are here
 ```
 
 ---
 
-## Getting Started
+## The CLI (TUI)
 
-### Prerequisites
+Located in `packages/lazydlp`, this is a beautiful terminal wrapper built with [Ink](https://github.com/vadimdemedes/ink) (React for the terminal) and Zustand for state management.
 
-Make sure the following are installed on your system:
+### CLI Features
 
-- **Node.js** ≥ 16
-- **npm** (or **bun**)
-- **yt-dlp** — install via your package manager:
-  ```bash
-  # macOS
-  brew install yt-dlp
+- **Slash Commands**: Type `/help`, `/clear`, `/exit`, or `/download` to interact with the app.
+- **Smart Autocomplete**: Use your arrow keys to quickly select suggestions as you type.
+- **Zero-Config Install**: Automatically downloads and configures the latest `yt-dlp` binary on your system via the `/configure` command. No manual installation required!
+- **Live Progress UI**: Streams and parses `yt-dlp` stdout, displaying a clean graphical progress bar and ETA without terminal flickering.
+- **Persistent History**: Keeps track of your recent downloads and settings locally using `zod` and `fs`.
+- **Global Shortcuts**: Press `?` anywhere to bring up the shortcuts menu.
 
-  # Debian/Ubuntu
-  sudo apt install yt-dlp
+### CLI Quick Start
 
-  # Or with pip
-  pip install yt-dlp
-  ```
+You can run the CLI instantly without downloading the repository using:
+```bash
+npx lazydlp
+# or
+bunx lazydlp
+```
 
-### Installation
+---
+
+## The Web App
+
+Located in `apps/web`, this is a sleek, modern web application built with Vite and React. 
+
+### Web App Features
+
+- **Gorgeous UI**: Built with a sleek dark mode, glassmorphism, and smooth micro-animations.
+- **Interactive Forms**: Easy URL submission and configuration without touching the terminal.
+- **Modern Stack**: Vite, React, Vanilla CSS.
+
+### Web App Quick Start
+
+To run the web app locally, you need to clone this repository and start the dev server:
 
 ```bash
 # Clone the repo
@@ -87,36 +87,39 @@ git clone https://github.com/devalentineomonya/lazydlp.git
 cd lazydlp
 
 # Install dependencies
-npm install
+bun install
+
+# Start the web app
+bun run dev:web
 ```
 
-### Running in Dev Mode
+---
 
-TypeScript is compiled with `tsc --watch`; the output lands in `dist/`.
+## Development Setup
+
+This repository uses **Bun** workspaces.
 
 ```bash
-# Terminal 1 — watch & compile
-npm run dev
+# Install dependencies for the entire monorepo
+bun install
 
-# Terminal 2 — run the compiled CLI
-node dist/cli.js
+# Start the Web App in development mode
+bun run dev:web
+
+# Start the CLI in development mode (watches for changes)
+bun run dev:cli
+
+# Run the compiled CLI
+bun run start:cli
 ```
-
-### Building for Production
-
-```bash
-npm run build
-```
-
-The compiled files are written to `dist/`. The `package.json` `"bin"` field points to `dist/cli.js`, so after an npm install the `lazydlp` command is available everywhere.
 
 ---
 
 ## Contributing
 
 1. Fork the repo and create a feature branch: `git checkout -b feat/my-feature`
-2. Make your changes inside `source/`.
-3. Run `npm run build` to confirm it compiles without errors.
+2. Make your changes inside `packages/lazydlp` or `apps/web`.
+3. Run `bun run build:cli` or `bun run build:web` to confirm it compiles.
 4. Open a pull request with a clear description of what changed.
 
 ---
