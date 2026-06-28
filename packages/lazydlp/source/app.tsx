@@ -179,8 +179,8 @@ export default function App() {
 	const handleUpdate = () => {
 		addMessage('system', 'Updating lazydlp CLI and yt-dlp...');
 		
-		const npmUpdate = spawn('npm', ['install', '-g', 'lazydlp@latest']);
-		npmUpdate.on('close', (code) => {
+		const pkgUpdate = spawn('bun', ['install', '-g', 'lazydlp@latest']);
+		pkgUpdate.on('close', (code) => {
 			if (code === 0) {
 				addMessage('system', 'lazydlp CLI updated to the latest version.');
 			} else {
@@ -190,7 +190,7 @@ export default function App() {
 			handleConfigure(true);
 		});
 		
-		npmUpdate.on('error', (err) => {
+		pkgUpdate.on('error', (err) => {
 			addMessage('error', `Update error: ${err.message}`);
 			handleConfigure(true);
 		});
