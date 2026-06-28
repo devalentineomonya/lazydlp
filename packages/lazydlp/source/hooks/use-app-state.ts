@@ -185,7 +185,7 @@ export function useAppState() {
 		setIsDownloading(true);
 		addMessage('system', `Starting download for: ${url}`);
 
-		const ytDlp = spawn(dlpPath, ['-P', config.downloadDir, url]);
+		const ytDlp = spawn(dlpPath, ['-P', config.downloadDir, url], { cwd: config.downloadDir });
 		const currentLogId = addTemporaryMessage('yt-dlp', '...');
 		let outputBuffer = '';
 

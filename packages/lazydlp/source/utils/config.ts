@@ -17,7 +17,7 @@ export const ConfigSchema = z.object({
 export type Config = z.infer<typeof ConfigSchema>;
 
 const DEFAULT_CONFIG: Config = {
-    downloadDir: process.cwd(),
+    downloadDir: path.join(os.homedir(), 'Downloads'),
     recentDownloads: []
 };
 
