@@ -1,10 +1,10 @@
 # Lazydlp
 
-A sleek, interactive Terminal User Interface (TUI) for `yt-dlp`. 
+A sleek, interactive Terminal User Interface (TUI) for `yt-dlp`.
 
 Lazydlp provides a gorgeous, interactive, and user-friendly experience for downloading videos straight from your terminal. Built with React and Ink, it transforms the powerful but complex `yt-dlp` command-line tool into an intuitive visual application.
 
-![Lazydlp Screenshot](./assets/screenshot.png)
+![Lazydlp Screenshot](https://raw.githubusercontent.com/devalentineomonya/lazydlp/main/packages/lazydlp/assets/screenshot.png)
 
 ## Features
 
@@ -20,21 +20,25 @@ Lazydlp provides a gorgeous, interactive, and user-friendly experience for downl
 You can run Lazydlp instantly without installing anything using your favorite package manager:
 
 **Using npm:**
+
 ```bash
 npx lazydlp
 ```
 
 **Using Bun:**
+
 ```bash
 bunx lazydlp
 ```
 
 **Using pnpm:**
+
 ```bash
 pnpm dlx lazydlp
 ```
 
 **Using Yarn:**
+
 ```bash
 yarn dlx lazydlp
 ```
@@ -46,7 +50,9 @@ If you prefer to have the `lazydlp` command permanently available on your system
 ```bash
 npm install -g lazydlp
 ```
+
 Then, simply run:
+
 ```bash
 lazydlp
 ```
@@ -54,6 +60,7 @@ lazydlp
 ## Commands
 
 Once inside the app, you can use the following commands:
+
 - `/download <url>` - Download a video URL
 - `/setdir <path>` - Change your default download directory
 - `/update` - Force update Lazydlp and the underlying `yt-dlp` binary

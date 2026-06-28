@@ -13,9 +13,10 @@ type Props = {
 	setInput: (val: string) => void;
 	onSubmit: (val: string) => void;
 	isDownloading: boolean;
-	suggestions: Suggestion[];
+	suggestions: Suggestion[]; 
 	selectedIndex: number;
 	inputKey: number;
+	isActive: boolean;
 };
 
 export default function CommandInput({
@@ -26,6 +27,7 @@ export default function CommandInput({
 	suggestions,
 	selectedIndex,
 	inputKey,
+	isActive,
 }: Props) {
 	const VISIBLE_COUNT = 5;
 	let startIdx = Math.max(0, selectedIndex - Math.floor(VISIBLE_COUNT / 2));
@@ -61,11 +63,12 @@ export default function CommandInput({
 						onChange={setInput}
 						onSubmit={onSubmit}
 						placeholder=""
+						focus={isActive}
 					/>
 				)}
 			</Box>
 
-			{suggestions.length > 0 && !isDownloading && (
+			{isActive && suggestions.length > 0 && !isDownloading && (
 				<Box flexDirection="column" marginTop={0} paddingX={1}>
 					{moreAbove > 0 && <Text color={theme.dim}> ↑ {moreAbove} more</Text>}
 					{visibleSuggestions.map((s, idx) => {

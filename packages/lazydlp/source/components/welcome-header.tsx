@@ -8,7 +8,7 @@ import {useConfigStore} from '../store/config-store.js';
 export default function WelcomeHeader() {
 	const {config} = useConfigStore();
 	const recents = config.recentDownloads.slice(0, 3);
-	
+
 	const [width, setWidth] = useState(process.stdout.columns || 80);
 
 	useEffect(() => {

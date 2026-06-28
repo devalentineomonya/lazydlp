@@ -41,21 +41,19 @@ export default function App() {
 
 			<MessageHistory history={history} />
 
-			{showSettings ? (
-				<SettingsMenu onExit={() => setShowSettings(false)} />
-			) : showHelp ? (
-				<HelpMenu initialTab={helpTab} />
-			) : (
-				<CommandInput
-					input={input}
-					setInput={setInput}
-					onSubmit={handleSubmit}
-					isDownloading={isDownloading}
-					suggestions={suggestions}
-					selectedIndex={selectedIndex}
-					inputKey={inputKey}
-				/>
-			)}
+			<CommandInput
+				input={input}
+				setInput={setInput}
+				onSubmit={handleSubmit}
+				isDownloading={isDownloading}
+				suggestions={suggestions}
+				selectedIndex={selectedIndex}
+				inputKey={inputKey}
+				isActive={!showSettings && !showHelp}
+			/>
+
+			{showSettings && <SettingsMenu onExit={() => setShowSettings(false)} />}
+			{showHelp && <HelpMenu initialTab={helpTab} />}
 
 			<StatusBar ctrlCPressed={ctrlCPressed} showHelp={showHelp} />
 		</Box>

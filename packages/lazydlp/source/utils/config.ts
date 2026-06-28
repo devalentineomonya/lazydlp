@@ -22,13 +22,7 @@ export const ConfigSchema = z.object({
 			audioFormat: z.enum(['best', 'mp3', 'm4a', 'wav']).default('best'),
 			playlists: z.boolean().default(false),
 			subtitles: z.boolean().default(false),
-		})
-		.default({
-			downloadType: 'video',
-			resolution: 'best',
-			audioFormat: 'best',
-			playlists: false,
-			subtitles: false,
+			jsRuntime: z.enum(['default', 'node', 'bun', 'deno']).default('default'),
 		}),
 });
 
@@ -43,6 +37,7 @@ const DEFAULT_CONFIG: Config = {
 		audioFormat: 'best',
 		playlists: false,
 		subtitles: false,
+		jsRuntime: 'default',
 	},
 };
 

@@ -39,16 +39,6 @@ export default function HelpMenu({initialTab = 0}: {initialTab?: number}) {
 				})}
 				<Text color={theme.dim}> (←/→ to cycle)</Text>
 			</Box>
-
-			<Box
-				borderStyle="single"
-				borderColor={theme.link}
-				borderTop={false}
-				borderLeft={false}
-				borderRight={false}
-				marginBottom={1}
-			/>
-
 			{activeTab === 0 && (
 				<Box flexDirection="column">
 					<Box marginBottom={1}>

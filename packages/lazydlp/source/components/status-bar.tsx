@@ -19,8 +19,8 @@ export default function StatusBar({ctrlCPressed, showHelp}: Props) {
 				{ctrlCPressed
 					? 'Press ctrl+c again to exit'
 					: showHelp
-						? 'esc to close'
-						: '? for shortcuts'}
+					? 'esc to close'
+					: '? for shortcuts'}
 			</Text>
 			<Text color={theme.dim}>Ready · Type /help</Text>
 		</Box>

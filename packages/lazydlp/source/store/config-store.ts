@@ -5,7 +5,10 @@ interface ConfigState {
 	config: Config;
 	setDownloadDir: (dir: string) => void;
 	addRecentDownload: (url: string, title?: string) => void;
-	updateSetting: <K extends keyof Config['settings']>(key: K, value: Config['settings'][K]) => void;
+	updateSetting: <K extends keyof Config['settings']>(
+		key: K,
+		value: Config['settings'][K],
+	) => void;
 }
 
 export const useConfigStore = create<ConfigState>(set => ({

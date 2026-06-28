@@ -30,8 +30,8 @@ export function useAppState() {
 	const [helpTab, setHelpTab] = useState(0);
 	const [inputKey, setInputKey] = useState(0);
 	const {exit} = useApp();
-	
-	const activeHandles = useRef<{ kill: () => void }[]>([]);
+
+	const activeHandles = useRef<{kill: () => void}[]>([]);
 
 	const quitApp = () => {
 		activeHandles.current.forEach(handle => {
@@ -98,7 +98,7 @@ export function useAppState() {
 		}
 	});
 
-let cachedDlpPath: string | null | undefined = undefined;
+	let cachedDlpPath: string | null | undefined = undefined;
 
 	const getDlpPath = async (): Promise<string | null> => {
 		if (cachedDlpPath !== undefined) return cachedDlpPath;
@@ -225,7 +225,7 @@ let cachedDlpPath: string | null | undefined = undefined;
 					setIsDownloading(false);
 					addMessage('error', `Download error: ${err.message}`);
 				});
-			activeHandles.current.push({ kill: () => req.destroy() });
+			activeHandles.current.push({kill: () => req.destroy()});
 		};
 
 		download(url);
@@ -285,6 +285,10 @@ let cachedDlpPath: string | null | undefined = undefined;
 
 		if (config.settings.subtitles) {
 			args.push('--write-auto-sub', '--write-sub', '--embed-subs');
+		}
+
+		if (config.settings.jsRuntime !== 'default') {
+			args.push('--js-runtimes', config.settings.jsRuntime);
 		}
 
 		args.push(url);
