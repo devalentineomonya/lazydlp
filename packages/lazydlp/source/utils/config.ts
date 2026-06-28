@@ -15,6 +15,21 @@ export const ConfigSchema = z.object({
 			title: z.string().optional(),
 		}),
 	),
+	settings: z
+		.object({
+			downloadType: z.enum(['video', 'audio']).default('video'),
+			resolution: z.enum(['best', '1080p', '720p', '480p']).default('best'),
+			audioFormat: z.enum(['best', 'mp3', 'm4a', 'wav']).default('best'),
+			playlists: z.boolean().default(false),
+			subtitles: z.boolean().default(false),
+		})
+		.default({
+			downloadType: 'video',
+			resolution: 'best',
+			audioFormat: 'best',
+			playlists: false,
+			subtitles: false,
+		}),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -22,6 +37,13 @@ export type Config = z.infer<typeof ConfigSchema>;
 const DEFAULT_CONFIG: Config = {
 	downloadDir: path.join(os.homedir(), 'Downloads'),
 	recentDownloads: [],
+	settings: {
+		downloadType: 'video',
+		resolution: 'best',
+		audioFormat: 'best',
+		playlists: false,
+		subtitles: false,
+	},
 };
 
 export const loadConfig = (): Config => {

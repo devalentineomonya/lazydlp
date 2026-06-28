@@ -2,9 +2,9 @@
 import {Box, render, Text} from 'ink';
 import React from 'react';
 import {theme} from './utils/theme.js';
-
 import CommandInput from './components/command-input.js';
 import HelpMenu from './components/help-menu.js';
+import SettingsMenu from './components/settings-menu.js';
 import MessageHistory from './components/message-history.js';
 import StatusBar from './components/status-bar.js';
 import WelcomeHeader from './components/welcome-header.js';
@@ -19,6 +19,8 @@ export default function App() {
 		selectedIndex,
 		ctrlCPressed,
 		showHelp,
+		showSettings,
+		setShowSettings,
 		helpTab,
 		inputKey,
 		suggestions,
@@ -39,7 +41,9 @@ export default function App() {
 
 			<MessageHistory history={history} />
 
-			{showHelp ? (
+			{showSettings ? (
+				<SettingsMenu onExit={() => setShowSettings(false)} />
+			) : showHelp ? (
 				<HelpMenu initialTab={helpTab} />
 			) : (
 				<CommandInput

@@ -1,5 +1,5 @@
 import {useApp, useInput} from 'ink';
-import {spawn, spawnSync} from 'node:child_process';
+import {spawn} from 'node:child_process';
 import fs from 'node:fs';
 import https from 'node:https';
 import os from 'node:os';
@@ -26,6 +26,7 @@ export function useAppState() {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [ctrlCPressed, setCtrlCPressed] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
 	const [helpTab, setHelpTab] = useState(0);
 	const [inputKey, setInputKey] = useState(0);
 	const {exit} = useApp();
@@ -55,10 +56,16 @@ export function useAppState() {
 
 	// Listen for up/down arrow keys to navigate suggestions, and manual Ctrl+C
 	useInput((inputChar, key) => {
-		if (showHelp) {
+		if (showHelp || showSettings) {
 			if (key.escape) {
-				setShowHelp(false);
-				addMessage('system', 'Help dialog dismissed');
+				if (showHelp) {
+					setShowHelp(false);
+					addMessage('system', 'Help dialog dismissed');
+				}
+				if (showSettings) {
+					setShowSettings(false);
+					addMessage('system', 'Settings saved');
+				}
 			}
 			return;
 		}
@@ -91,24 +98,46 @@ export function useAppState() {
 		}
 	});
 
-	const getDlpPath = () => {
-		try {
-			const sys = spawnSync('yt-dlp', ['--version']);
-			if (sys.status === 0) return 'yt-dlp';
-		} catch {}
+let cachedDlpPath: string | null | undefined = undefined;
 
-		const customPath = path.join(
-			os.homedir(),
-			'.lazydlp',
-			os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
-		);
-		if (fs.existsSync(customPath)) return customPath;
+	const getDlpPath = async (): Promise<string | null> => {
+		if (cachedDlpPath !== undefined) return cachedDlpPath;
 
-		return null;
+		return new Promise(resolve => {
+			const sys = spawn('yt-dlp', ['--version']);
+
+			sys.on('close', code => {
+				if (code === 0) {
+					cachedDlpPath = 'yt-dlp';
+					resolve(cachedDlpPath);
+				} else {
+					checkCustomPath();
+				}
+			});
+
+			sys.on('error', () => {
+				checkCustomPath();
+			});
+
+			function checkCustomPath() {
+				const customPath = path.join(
+					os.homedir(),
+					'.lazydlp',
+					os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+				);
+				if (fs.existsSync(customPath)) {
+					cachedDlpPath = customPath;
+					resolve(cachedDlpPath);
+				} else {
+					cachedDlpPath = null;
+					resolve(null);
+				}
+			}
+		});
 	};
 
-	const handleConfigure = (forceDownload = false) => {
-		const existingPath = getDlpPath();
+	const handleConfigure = async (forceDownload = false) => {
+		const existingPath = await getDlpPath();
 		if (existingPath && !forceDownload) {
 			addMessage(
 				'system',
@@ -183,6 +212,7 @@ export function useAppState() {
 							fs.chmodSync(destPath, 0o755);
 						}
 						resetYtDlpVersionCache();
+						cachedDlpPath = undefined;
 						setIsDownloading(false);
 						updateMessage(
 							currentLogId,
@@ -222,8 +252,8 @@ export function useAppState() {
 		});
 	};
 
-	const handleDownload = (url: string) => {
-		const dlpPath = getDlpPath();
+	const handleDownload = async (url: string) => {
+		const dlpPath = await getDlpPath();
 		if (!dlpPath) {
 			addMessage(
 				'error',
@@ -235,7 +265,31 @@ export function useAppState() {
 		setIsDownloading(true);
 		addMessage('system', `Starting download for: ${url}`);
 
-		const ytDlp = spawn(dlpPath, ['-P', config.downloadDir, url], {
+		const args = ['-P', config.downloadDir];
+
+		if (config.settings.downloadType === 'audio') {
+			args.push('-x', '--audio-format', config.settings.audioFormat);
+		} else if (config.settings.resolution !== 'best') {
+			const height = config.settings.resolution.replace('p', '');
+			args.push(
+				'-f',
+				`bestvideo[height<=${height}]+bestaudio/best[height<=${height}]/best`,
+			);
+		}
+
+		if (config.settings.playlists) {
+			args.push('--yes-playlist');
+		} else {
+			args.push('--no-playlist');
+		}
+
+		if (config.settings.subtitles) {
+			args.push('--write-auto-sub', '--write-sub', '--embed-subs');
+		}
+
+		args.push(url);
+
+		const ytDlp = spawn(dlpPath, args, {
 			cwd: config.downloadDir,
 		});
 		activeHandles.current.push(ytDlp);
@@ -398,6 +452,8 @@ export function useAppState() {
 						);
 					}
 				}
+			} else if (cmd === '/settings') {
+				setShowSettings(true);
 			} else if (cmd === '/configure') {
 				handleConfigure(false);
 			} else if (cmd === '/update') {
@@ -445,6 +501,8 @@ export function useAppState() {
 		selectedIndex,
 		ctrlCPressed,
 		showHelp,
+		showSettings,
+		setShowSettings,
 		helpTab,
 		inputKey,
 		suggestions,
