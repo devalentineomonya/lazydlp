@@ -13,8 +13,9 @@ Lazydlp provides a gorgeous, interactive, and user-friendly experience for downl
 - **Streaming Progress**: Real-time progress bars, download speeds, and ETAs rendered beautifully without terminal flickering.
 - **Persistent History**: Keeps track of your recent downloads locally so you can easily review them.
 - **Smart Suggestions**: Autocompletes commands and arguments as you type.
-- **Cross-Platform**: Works smoothly on Windows, macOS, and Linux.
-
+- **Interactive Action Menu**: Quickly play downloaded media or open their containing folders directly from your recent history.
+- **Android / Termux Ready**: Automatically detects Termux environments, safely maps to your Android shared storage, and guides you through setup.
+- **Cross-Platform**: Works smoothly on Windows, macOS, Linux, and Android.
 ## Quick Start (No Installation Required)
 
 You can run Lazydlp instantly without installing anything using your favorite package manager:
@@ -42,6 +43,19 @@ pnpm dlx lazydlp
 ```bash
 yarn dlx lazydlp
 ```
+
+### 📱 Android (Termux) Setup
+
+Lazydlp works flawlessly on Android via Termux! To ensure the best experience:
+1. Allow Termux to access your phone's shared storage so downloaded videos appear in your Gallery:
+   ```bash
+   termux-setup-storage
+   ```
+2. Install Python (required to run `yt-dlp` on Android architectures):
+   ```bash
+   pkg install python
+   ```
+3. Run `npx lazydlp`! Lazydlp will automatically detect your environment and save videos directly to your phone's `Downloads` folder.
 
 ## Global Installation
 
