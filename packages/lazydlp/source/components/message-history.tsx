@@ -1,5 +1,7 @@
-import {Box, Text} from 'ink';
-import React from 'react';
+import {Box, Text, useInput} from 'ink';
+import React, {useState} from 'react';
+import Spinner from 'ink-spinner';
+import Gradient from 'ink-gradient';
 import {Message} from '../types/types.js';
 import {theme} from '../utils/theme.js';
 
@@ -8,6 +10,14 @@ type Props = {
 };
 
 export default function MessageHistory({history}: Props) {
+	const [collapsed, setCollapsed] = useState(true);
+
+	useInput((input, key) => {
+		if (input === 'o' && key.ctrl) {
+			setCollapsed(prev => !prev);
+		}
+	});
+
 	return (
 		<Box flexDirection="column" marginBottom={1}>
 			{history.map(msg => (
@@ -18,7 +28,50 @@ export default function MessageHistory({history}: Props) {
 							<Text>{msg.text}</Text>
 						</Box>
 					)}
-					{msg.type === 'system' && (
+					{msg.type === 'yt-dlp' && (
+						<Box paddingLeft={0} flexDirection="column">
+							<Box flexDirection="row">
+								{msg.isPending ? (
+									<Text color={theme.dim}>
+										<Spinner type="dots" />{' '}
+									</Text>
+								) : (
+									<Text color={theme.dim}>└ </Text>
+								)}
+								{msg.text.includes('\n') && (
+									<Text color={theme.dim}>
+										(ctrl+o to {collapsed ? 'expand' : 'collapse'})
+									</Text>
+								)}
+							</Box>
+							{msg.isPending ? (
+								<Gradient name="pastel">
+									<Text>
+										{collapsed
+											? msg.text.split('\n').slice(-4).join('\n')
+											: msg.text}
+									</Text>
+								</Gradient>
+							) : (
+								<Text dimColor>
+									{collapsed
+										? msg.text.split('\n').slice(-4).join('\n')
+										: msg.text}
+								</Text>
+							)}
+						</Box>
+					)}
+					{msg.type === 'system' && msg.isPending && (
+						<Box paddingLeft={0}>
+							<Text color={theme.dim}>
+								<Spinner type="dots" />{' '}
+							</Text>
+							<Gradient name="pastel">
+								<Text>{msg.text}</Text>
+							</Gradient>
+						</Box>
+					)}
+					{msg.type === 'system' && !msg.isPending && (
 						<Box paddingLeft={0}>
 							<Text color={theme.dim}>└ </Text>
 							<Text color={theme.success}>{msg.text}</Text>
@@ -28,12 +81,6 @@ export default function MessageHistory({history}: Props) {
 						<Box paddingLeft={0}>
 							<Text color={theme.dim}>└ </Text>
 							<Text color={theme.error}>{msg.text}</Text>
-						</Box>
-					)}
-					{msg.type === 'yt-dlp' && (
-						<Box paddingLeft={0}>
-							<Text color={theme.dim}>└ </Text>
-							<Text dimColor>{msg.text}</Text>
 						</Box>
 					)}
 				</Box>
