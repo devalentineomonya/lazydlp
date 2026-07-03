@@ -8,7 +8,7 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc",
+		"build": "bun build ./source/app.tsx --target=node --external yoga-wasm-web --outfile=./dist/app.js",
 		"dev": "tsc --watch",
 		"test": "prettier --check . && xo && ava"
 	},
