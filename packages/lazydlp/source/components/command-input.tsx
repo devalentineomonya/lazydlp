@@ -13,7 +13,7 @@ type Props = {
 	setInput: (val: string) => void;
 	onSubmit: (val: string) => void;
 	isDownloading: boolean;
-	suggestions: Suggestion[]; 
+	suggestions: Suggestion[];
 	selectedIndex: number;
 	inputKey: number;
 	isActive: boolean;

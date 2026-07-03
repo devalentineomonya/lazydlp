@@ -4,7 +4,7 @@ import {Config, loadConfig, saveConfig} from '../utils/config.js';
 interface ConfigState {
 	config: Config;
 	setDownloadDir: (dir: string) => void;
-	addRecentDownload: (url: string, title?: string) => void;
+	addRecentDownload: (url: string, title?: string, filepath?: string) => void;
 	updateSetting: <K extends keyof Config['settings']>(
 		key: K,
 		value: Config['settings'][K],
@@ -19,10 +19,10 @@ export const useConfigStore = create<ConfigState>(set => ({
 			saveConfig(newConfig);
 			return {config: newConfig};
 		}),
-	addRecentDownload: (url, title) =>
+	addRecentDownload: (url, title, filepath) =>
 		set(state => {
 			const newRecents = [
-				{url, title, date: new Date().toISOString()},
+				{url, title, filepath, date: new Date().toISOString()},
 				...state.config.recentDownloads.filter(r => r.url !== url),
 			].slice(0, 10);
 			const newConfig = {...state.config, recentDownloads: newRecents};

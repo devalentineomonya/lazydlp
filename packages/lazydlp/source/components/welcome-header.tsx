@@ -4,6 +4,11 @@ import {theme} from '../utils/theme.js';
 import {APP_VERSION} from '../utils/version.js';
 import Logo from './logo.js';
 import {useConfigStore} from '../store/config-store.js';
+import path from 'node:path';
+
+const makeLink = (text: string, url: string) => {
+	return `\x1B]8;;${url}\x07${text}\x1B]8;;\x07`;
+};
 
 export default function WelcomeHeader() {
 	const {config} = useConfigStore();
@@ -86,6 +91,17 @@ export default function WelcomeHeader() {
 							<Text color={theme.dim} wrap="truncate-end">
 								{recent.url}
 							</Text>
+							{recent.filepath && (
+								<Box flexDirection="row" marginTop={0}>
+									<Text color={theme.link}>
+										{makeLink('▶ Open', 'file://' + recent.filepath)}
+									</Text>
+									<Text>  </Text>
+									<Text color={theme.link}>
+										{makeLink('📂 Location', 'file://' + path.dirname(recent.filepath))}
+									</Text>
+								</Box>
+							)}
 							{i < recents.length - 1 && (
 								<Box
 									borderStyle="single"

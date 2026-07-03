@@ -25,6 +25,8 @@ export default function App() {
 		inputKey,
 		suggestions,
 		handleSubmit,
+		postDownloadPrompt,
+		promptOptionIndex,
 	} = useAppState();
 
 	return (
@@ -49,8 +51,24 @@ export default function App() {
 				suggestions={suggestions}
 				selectedIndex={selectedIndex}
 				inputKey={inputKey}
-				isActive={!showSettings && !showHelp}
+				isActive={!showSettings && !showHelp && !postDownloadPrompt}
 			/>
+
+			{postDownloadPrompt && (
+				<Box flexDirection="column" borderStyle="round" borderColor={theme.success} paddingX={1} marginY={1}>
+					<Text bold color={theme.success}>Download Complete!</Text>
+					<Text color={theme.text} wrap="truncate-end">{postDownloadPrompt.title || postDownloadPrompt.filepath}</Text>
+					<Box flexDirection="row" marginTop={1}>
+						{['Open', 'Open Location', 'Delete'].map((label, i) => (
+							<Box key={i} marginRight={2}>
+								<Text color={i === promptOptionIndex ? theme.primary : theme.dim} bold={i === promptOptionIndex}>
+									{i === promptOptionIndex ? '▶ ' : '  '}{label}
+								</Text>
+							</Box>
+						))}
+					</Box>
+				</Box>
+			)}
 
 			{showSettings && <SettingsMenu onExit={() => setShowSettings(false)} />}
 			{showHelp && <HelpMenu initialTab={helpTab} />}
