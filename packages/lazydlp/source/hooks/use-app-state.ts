@@ -27,6 +27,8 @@ export function useAppState() {
 	const [ctrlCPressed, setCtrlCPressed] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
+	const [postDownloadPrompt, setPostDownloadPrompt] = useState<{title?: string; filepath: string} | null>(null);
+	const [promptOptionIndex, setPromptOptionIndex] = useState(0);
 	const [helpTab, setHelpTab] = useState(0);
 	const [inputKey, setInputKey] = useState(0);
 	const {exit} = useApp();
@@ -54,6 +56,19 @@ export function useAppState() {
 		setSelectedIndex(0);
 	}, [input]);
 
+	// Auto configure if yt-dlp is not available
+	useEffect(() => {
+		let isMounted = true;
+		getDlpPath().then(cmd => {
+			if (!cmd && isMounted) {
+				handleConfigure(false);
+			}
+		});
+		return () => {
+			isMounted = false;
+		};
+	}, []);
+
 	// Listen for up/down arrow keys to navigate suggestions, and manual Ctrl+C
 	useInput((inputChar, key) => {
 		if (showHelp || showSettings) {
@@ -66,6 +81,42 @@ export function useAppState() {
 					setShowSettings(false);
 					addMessage('system', 'Settings saved');
 				}
+			}
+			return;
+		}
+
+		if (postDownloadPrompt) {
+			if (key.escape) {
+				setPostDownloadPrompt(null);
+				return;
+			}
+			if (key.leftArrow) {
+				setPromptOptionIndex(prev => Math.max(0, prev - 1));
+			} else if (key.rightArrow) {
+				setPromptOptionIndex(prev => Math.min(2, prev + 1));
+			} else if (key.return) {
+				const opts = ['open', 'location', 'delete'];
+				const action = opts[promptOptionIndex];
+				const filepath = postDownloadPrompt.filepath;
+				if (action === 'open') {
+					import('open').then(m => {
+						if (config.settings.defaultApp) {
+							m.default(filepath, {app: {name: config.settings.defaultApp}});
+						} else {
+							m.default(filepath);
+						}
+					});
+				} else if (action === 'location') {
+					import('open').then(m => m.default(path.dirname(filepath)));
+				} else if (action === 'delete') {
+					try {
+						fs.unlinkSync(filepath);
+						addMessage('system', `Deleted: ${filepath}`);
+					} catch (e: any) {
+						addMessage('error', `Failed to delete: ${e.message}`);
+					}
+				}
+				setPostDownloadPrompt(null);
 			}
 			return;
 		}
@@ -98,26 +149,64 @@ export function useAppState() {
 		}
 	});
 
-	let cachedDlpPath: string | null | undefined = undefined;
+	const findPython = async (): Promise<string | null> => {
+		for (const cmd of ['python3', 'python', 'py']) {
+			try {
+				const works = await new Promise<boolean>(resolve => {
+					const py = spawn(cmd, ['--version']);
+					py.on('close', code => resolve(code === 0));
+					py.on('error', () => resolve(false));
+				});
+				if (works) return cmd;
+			} catch {}
+		}
+		return null;
+	};
 
-	const getDlpPath = async (): Promise<string | null> => {
-		if (cachedDlpPath !== undefined) return cachedDlpPath;
+	let cachedDlpCmd: {cmd: string; args: string[]} | null | undefined =
+		undefined;
+
+	const getDlpPath = async (): Promise<{
+		cmd: string;
+		args: string[];
+	} | null> => {
+		if (cachedDlpCmd !== undefined) return cachedDlpCmd;
 
 		return new Promise(resolve => {
 			const sys = spawn('yt-dlp', ['--version']);
 
 			sys.on('close', code => {
 				if (code === 0) {
-					cachedDlpPath = 'yt-dlp';
-					resolve(cachedDlpPath);
+					cachedDlpCmd = {cmd: 'yt-dlp', args: []};
+					resolve(cachedDlpCmd);
 				} else {
-					checkCustomPath();
+					checkPythonModule();
 				}
 			});
 
 			sys.on('error', () => {
-				checkCustomPath();
+				checkPythonModule();
 			});
+
+			async function checkPythonModule() {
+				const pyCmd = await findPython();
+				if (!pyCmd) {
+					checkCustomPath();
+					return;
+				}
+				const py = spawn(pyCmd, ['-m', 'yt_dlp', '--version']);
+				py.on('close', code => {
+					if (code === 0) {
+						cachedDlpCmd = {cmd: pyCmd, args: ['-m', 'yt_dlp']};
+						resolve(cachedDlpCmd);
+					} else {
+						checkCustomPath();
+					}
+				});
+				py.on('error', () => {
+					checkCustomPath();
+				});
+			}
 
 			function checkCustomPath() {
 				const customPath = path.join(
@@ -126,10 +215,29 @@ export function useAppState() {
 					os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
 				);
 				if (fs.existsSync(customPath)) {
-					cachedDlpPath = customPath;
-					resolve(cachedDlpPath);
+					findPython().then(pyCmd => {
+						if (pyCmd) {
+							const py = spawn(pyCmd, [customPath, '--version']);
+							py.on('close', code => {
+								if (code === 0) {
+									cachedDlpCmd = {cmd: pyCmd, args: [customPath]};
+									resolve(cachedDlpCmd);
+								} else {
+									cachedDlpCmd = {cmd: customPath, args: []};
+									resolve(cachedDlpCmd);
+								}
+							});
+							py.on('error', () => {
+								cachedDlpCmd = {cmd: customPath, args: []};
+								resolve(cachedDlpCmd);
+							});
+						} else {
+							cachedDlpCmd = {cmd: customPath, args: []};
+							resolve(cachedDlpCmd);
+						}
+					});
 				} else {
-					cachedDlpPath = null;
+					cachedDlpCmd = null;
 					resolve(null);
 				}
 			}
@@ -137,98 +245,149 @@ export function useAppState() {
 	};
 
 	const handleConfigure = async (forceDownload = false) => {
-		const existingPath = await getDlpPath();
-		if (existingPath && !forceDownload) {
+		const existingCmd = await getDlpPath();
+		if (existingCmd && !forceDownload) {
 			addMessage(
 				'system',
-				`yt-dlp is already installed at: ${existingPath}. Use /update to force an update.`,
+				`yt-dlp is already available via: ${
+					existingCmd.cmd
+				} ${existingCmd.args.join(' ')}. Use /update to force an update.`,
 			);
 			return;
 		}
 
 		setIsDownloading(true);
-		addMessage('system', 'Configuring Lazydlp: Downloading yt-dlp...');
+		addMessage('system', 'Configuring Lazydlp: Installing yt-dlp...');
 
-		const platform = os.platform();
-		let filename = 'yt-dlp';
-		if (platform === 'win32') filename = 'yt-dlp.exe';
-		else if (platform === 'darwin') filename = 'yt-dlp_macos';
-		else if (platform === 'linux') filename = 'yt-dlp_linux';
+		const currentLogId = addTemporaryMessage('system', 'Starting pip install...', true);
 
-		const url = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${filename}`;
-		const targetDir = path.join(os.homedir(), '.lazydlp');
-		if (!fs.existsSync(targetDir)) {
-			fs.mkdirSync(targetDir, {recursive: true});
-		}
+		const fallbackToDirectDownload = (logId: string) => {
+			const platform = os.platform();
+			let filename = 'yt-dlp';
+			if (platform === 'win32') filename = 'yt-dlp.exe';
+			else if (platform === 'darwin') filename = 'yt-dlp_macos';
+			else if (platform === 'linux') filename = 'yt-dlp_linux';
 
-		const destPath = path.join(
-			targetDir,
-			platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
-		);
-		const file = fs.createWriteStream(destPath);
-		const currentLogId = addTemporaryMessage('system', 'Connecting...');
+			const url = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${filename}`;
+			const targetDir = path.join(os.homedir(), '.lazydlp');
+			if (!fs.existsSync(targetDir)) {
+				fs.mkdirSync(targetDir, {recursive: true});
+			}
 
-		const download = (urlStr: string) => {
-			const req = https
-				.get(urlStr, response => {
-					if (response.statusCode === 301 || response.statusCode === 302) {
-						return download(response.headers.location!);
-					}
-					if (response.statusCode !== 200) {
-						addMessage(
-							'error',
-							`Download failed with status ${response.statusCode}`,
-						);
-						setIsDownloading(false);
-						return;
-					}
+			const destPath = path.join(
+				targetDir,
+				platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+			);
+			const file = fs.createWriteStream(destPath);
+			updateMessage(logId, 'Connecting to GitHub releases...', true);
 
-					const total = parseInt(response.headers['content-length'] || '0', 10);
-					let downloaded = 0;
-					let lastUpdate = 0;
-
-					response.on('data', chunk => {
-						downloaded += chunk.length;
-						const now = Date.now();
-						if (total > 0 && now - lastUpdate > 100) {
-							lastUpdate = now;
-							const percent = Math.round((downloaded / total) * 100);
-							const barWidth = 30;
-							const filled = Math.round((percent / 100) * barWidth);
-							const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled);
-
-							updateMessage(
-								currentLogId,
-								`Downloading yt-dlp: [${bar}] ${percent}%`,
+			const download = (urlStr: string) => {
+				const req = https
+					.get(urlStr, response => {
+						if (response.statusCode === 301 || response.statusCode === 302) {
+							return download(response.headers.location!);
+						}
+						if (response.statusCode !== 200) {
+							addMessage(
+								'error',
+								`Download failed with status ${response.statusCode}`,
 							);
+							setIsDownloading(false);
+							updateMessage(logId, 'Download failed.', false);
+							return;
 						}
-					});
 
-					response.pipe(file);
+						const total = parseInt(response.headers['content-length'] || '0', 10);
+						let downloaded = 0;
+						let lastUpdate = 0;
 
-					file.on('finish', () => {
-						file.close();
-						if (platform !== 'win32') {
-							fs.chmodSync(destPath, 0o755);
-						}
-						resetYtDlpVersionCache();
-						cachedDlpPath = undefined;
+						response.on('data', chunk => {
+							downloaded += chunk.length;
+							const now = Date.now();
+							if (total > 0 && now - lastUpdate > 100) {
+								lastUpdate = now;
+								const percent = Math.round((downloaded / total) * 100);
+								const barWidth = 30;
+								const filled = Math.round((percent / 100) * barWidth);
+								const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled);
+
+								updateMessage(
+									logId,
+									`Downloading yt-dlp: [${bar}] ${percent}%`,
+									true,
+								);
+							}
+						});
+
+						response.pipe(file);
+
+						file.on('finish', () => {
+							file.close();
+							if (platform !== 'win32') {
+								fs.chmodSync(destPath, 0o755);
+							}
+							resetYtDlpVersionCache();
+							cachedDlpCmd = undefined;
+							setIsDownloading(false);
+							updateMessage(
+								logId,
+								`yt-dlp successfully installed to ${destPath}`,
+								false,
+							);
+						});
+					})
+					.on('error', err => {
+						fs.unlink(destPath, () => {});
 						setIsDownloading(false);
-						updateMessage(
-							currentLogId,
-							`yt-dlp successfully installed to ${destPath}`,
-						);
+						updateMessage(logId, 'Download failed.', false);
+						addMessage('error', `Download error: ${err.message}`);
 					});
-				})
-				.on('error', err => {
-					fs.unlink(destPath, () => {});
-					setIsDownloading(false);
-					addMessage('error', `Download error: ${err.message}`);
-				});
-			activeHandles.current.push({kill: () => req.destroy()});
+				activeHandles.current.push({kill: () => req.destroy()});
+			};
+
+			download(url);
 		};
 
-		download(url);
+		const pyCmd = await findPython();
+		if (!pyCmd) {
+			updateMessage(currentLogId, 'No python executable found. Falling back to direct download...', true);
+			fallbackToDirectDownload(currentLogId);
+			return;
+		}
+
+		const pip = spawn(pyCmd, ['-m', 'pip', 'install', '--user', '-U', 'yt-dlp']);
+		activeHandles.current.push(pip);
+
+		pip.stdout.on('data', data => {
+			const text = data.toString().trim();
+			if (text) {
+				updateMessage(currentLogId, `pip: ${text.split('\n').pop()}`, true);
+			}
+		});
+		
+		pip.stderr.on('data', data => {
+			const text = data.toString().trim();
+			if (text) {
+				updateMessage(currentLogId, `pip error: ${text.split('\n').pop()}`, true);
+			}
+		});
+
+		pip.on('close', code => {
+			if (code === 0) {
+				resetYtDlpVersionCache();
+				cachedDlpCmd = undefined;
+				setIsDownloading(false);
+				updateMessage(currentLogId, 'yt-dlp successfully installed via pip!', false);
+			} else {
+				updateMessage(currentLogId, 'pip install failed, falling back to direct download...', true);
+				fallbackToDirectDownload(currentLogId);
+			}
+		});
+
+		pip.on('error', () => {
+			updateMessage(currentLogId, 'pip execution failed, falling back to direct download...', true);
+			fallbackToDirectDownload(currentLogId);
+		});
 	};
 
 	const handleUpdate = () => {
@@ -252,9 +411,12 @@ export function useAppState() {
 		});
 	};
 
-	const handleDownload = async (url: string) => {
-		const dlpPath = await getDlpPath();
-		if (!dlpPath) {
+	const handleDownload = async (
+		url: string,
+		overrideType?: 'audio' | 'video',
+	) => {
+		const dlpCmd = await getDlpPath();
+		if (!dlpCmd) {
 			addMessage(
 				'error',
 				'yt-dlp is not installed. Please run /configure to download and set it up.',
@@ -265,9 +427,10 @@ export function useAppState() {
 		setIsDownloading(true);
 		addMessage('system', `Starting download for: ${url}`);
 
-		const args = ['-P', config.downloadDir];
+		const args = [...dlpCmd.args, '-P', config.downloadDir];
+		const downloadType = overrideType || config.settings.downloadType;
 
-		if (config.settings.downloadType === 'audio') {
+		if (downloadType === 'audio') {
 			args.push('-x', '--audio-format', config.settings.audioFormat);
 		} else if (config.settings.resolution !== 'best') {
 			const height = config.settings.resolution.replace('p', '');
@@ -293,17 +456,27 @@ export function useAppState() {
 
 		args.push(url);
 
-		const ytDlp = spawn(dlpPath, args, {
+		const ytDlp = spawn(dlpCmd.cmd, args, {
 			cwd: config.downloadDir,
 		});
 		activeHandles.current.push(ytDlp);
-		const currentLogId = addTemporaryMessage('yt-dlp', '...');
+		const currentLogId = addTemporaryMessage(
+			'yt-dlp',
+			'Extracting video info...',
+			true,
+		);
 		let outputBuffer = '';
 		let lastUpdate = 0;
 		let lastDisplay = '';
+		let downloadedFilepath: string | undefined;
 
 		let videoTitle: string | undefined;
-		const titleProcess = spawn(dlpPath, ['--print', 'title', url]);
+		const titleProcess = spawn(dlpCmd.cmd, [
+			...dlpCmd.args,
+			'--print',
+			'title',
+			url,
+		]);
 		activeHandles.current.push(titleProcess);
 		titleProcess.stdout.on('data', data => {
 			const output = data.toString().trim();
@@ -329,11 +502,19 @@ export function useAppState() {
 				const parts = line.split('\r');
 				const actualLine = parts[parts.length - 1];
 				if (actualLine && actualLine.trim()) {
-					displayLines.push(actualLine.trim());
+					const lineStr = actualLine.trim();
+					displayLines.push(lineStr);
+
+					const destMatch = lineStr.match(/\[download\] Destination: (.+)/);
+					if (destMatch && destMatch[1]) downloadedFilepath = destMatch[1];
+					const mergeMatch = lineStr.match(/\[Merger\] Merging formats into "([^"]+)"/);
+					if (mergeMatch && mergeMatch[1]) downloadedFilepath = mergeMatch[1];
+					const alreadyMatch = lineStr.match(/\[download\] (.*) has already been downloaded/);
+					if (alreadyMatch && alreadyMatch[1]) downloadedFilepath = alreadyMatch[1];
 				}
 			}
 
-			displayLines = displayLines.slice(-6);
+			displayLines = displayLines.slice(-30);
 			let finalDisplay = displayLines.join('\n');
 
 			const lastStr = displayLines[displayLines.length - 1] || '';
@@ -356,7 +537,7 @@ export function useAppState() {
 
 			const newDisplay = finalDisplay.trim();
 			if (newDisplay !== lastDisplay) {
-				updateMessage(currentLogId, newDisplay);
+				updateMessage(currentLogId, newDisplay, true);
 				lastDisplay = newDisplay;
 			}
 		};
@@ -373,12 +554,23 @@ export function useAppState() {
 			updateLastOutput('', true);
 			setIsDownloading(false);
 			if (code === 0) {
+				updateMessage(currentLogId, 'Download finished successfully.', false);
 				addMessage(
 					'system',
 					`Download completed successfully to ${config.downloadDir}.`,
 				);
-				addRecentDownload(url, videoTitle);
+				let finalFilepath = downloadedFilepath;
+				if (finalFilepath && !path.isAbsolute(finalFilepath)) {
+					finalFilepath = path.resolve(config.downloadDir, finalFilepath);
+				}
+				addRecentDownload(url, videoTitle, finalFilepath);
+				
+				if (finalFilepath && fs.existsSync(finalFilepath)) {
+					setPostDownloadPrompt({title: videoTitle, filepath: finalFilepath});
+					setPromptOptionIndex(0);
+				}
 			} else {
+				updateMessage(currentLogId, 'Download failed.', false);
 				addMessage('error', `yt-dlp exited with code ${code}`);
 			}
 		});
@@ -443,12 +635,17 @@ export function useAppState() {
 				if (args.length === 0) {
 					addMessage(
 						'error',
-						'Please provide a URL to download. Usage: /download <url>',
+						'Please provide a URL to download. Usage: /download <url> [--audio] [--video]',
 					);
 				} else {
-					const url = args[0]!;
-					if (isValidYouTubeUrl(url)) {
-						handleDownload(url);
+					const url = args.filter(a => !a.startsWith('--'))[0];
+					const isAudio = args.includes('--audio');
+					const isVideo = args.includes('--video');
+					if (url && isValidYouTubeUrl(url)) {
+						handleDownload(
+							url,
+							isAudio ? 'audio' : isVideo ? 'video' : undefined,
+						);
 					} else {
 						addMessage(
 							'error',
@@ -507,6 +704,8 @@ export function useAppState() {
 		showHelp,
 		showSettings,
 		setShowSettings,
+		postDownloadPrompt,
+		promptOptionIndex,
 		helpTab,
 		inputKey,
 		suggestions,
