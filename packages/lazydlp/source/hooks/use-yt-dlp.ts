@@ -56,6 +56,13 @@ export function useYtDlp({
 			else if (platform === 'darwin') filename = 'yt-dlp_macos';
 			else if (platform === 'linux') filename = 'yt-dlp_linux';
 
+			if (platform === 'android' || (platform === 'linux' && process.arch !== 'x64')) {
+				addMessage('error', 'A standalone yt-dlp binary is not available for this architecture/OS. Please install Python (e.g. pkg install python) and try again.');
+				setIsDownloading(false);
+				updateMessage(logId, 'Configuration failed: Python is required.', false);
+				return;
+			}
+
 			const url = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${filename}`;
 			const targetDir = path.join(os.homedir(), '.lazydlp');
 			if (!fs.existsSync(targetDir)) {
