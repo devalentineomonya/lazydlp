@@ -303,6 +303,10 @@ export function useYtDlp({
 		args.push(...cleanArgs);
 		args.push(url);
 
+		if (!fs.existsSync(config.downloadDir)) {
+			fs.mkdirSync(config.downloadDir, { recursive: true });
+		}
+
 		const ytDlp = spawn(dlpCmd.cmd, args, {
 			cwd: config.downloadDir,
 		});
