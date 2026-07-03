@@ -45,6 +45,12 @@ const SETTINGS_DEF = [
 		description: 'JavaScript engine to use for extracting complex videos',
 		options: ['default', 'node', 'bun', 'deno'],
 	},
+	{
+		key: 'defaultApp',
+		label: 'Default Media App',
+		description: 'App to open files with (e.g. vlc, mpv). Empty means system default.',
+		isStringInput: true,
+	},
 ];
 
 export default function SettingsMenu({onExit}: {onExit: () => void}) {
@@ -52,6 +58,7 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editOptionIndex, setEditOptionIndex] = useState(0);
+	const [editStringValue, setEditStringValue] = useState('');
 	const [search, setSearch] = useState('');
 
 	const filteredSettings = SETTINGS_DEF.filter(s =>
@@ -62,11 +69,23 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 
 	useInput((_, key) => {
 		if (isEditing && activeSetting) {
-			const options = activeSetting.options;
 			if (key.escape) {
 				setIsEditing(false);
 				return;
 			}
+			
+			if (activeSetting.isStringInput) {
+				if (key.return) {
+					updateSetting(
+						activeSetting.key as keyof typeof config.settings,
+						editStringValue as never,
+					);
+					setIsEditing(false);
+				}
+				return;
+			}
+
+			const options = activeSetting.options!;
 			if (key.upArrow) {
 				setEditOptionIndex(prev => Math.max(0, prev - 1));
 			} else if (key.downArrow) {
@@ -99,8 +118,6 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 	});
 
 	if (isEditing && activeSetting) {
-		const options = activeSetting.options;
-
 		return (
 			<Box flexDirection="column" paddingY={1}>
 				<Box marginBottom={1}>
@@ -110,33 +127,43 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 				</Box>
 
 				<Box flexDirection="column" marginBottom={1}>
-					{options.map((opt, i) => {
-						const isSelected = i === editOptionIndex;
-						const isCurrent =
-							config.settings[
-								activeSetting.key as keyof typeof config.settings
-							] === opt;
-						const displayOpt = activeSetting.format
-							? activeSetting.format(opt as boolean)
-							: String(opt);
+					{activeSetting.isStringInput ? (
+						<Box flexDirection="row">
+							<Text color={theme.link}>&gt; </Text>
+							<TextInput
+								value={editStringValue}
+								onChange={setEditStringValue}
+							/>
+						</Box>
+					) : (
+						activeSetting.options!.map((opt, i) => {
+							const isSelected = i === editOptionIndex;
+							const isCurrent =
+								config.settings[
+									activeSetting.key as keyof typeof config.settings
+								] === opt;
+							const displayOpt = activeSetting.format
+								? activeSetting.format(opt as boolean)
+								: String(opt);
 
-						return (
-							<Box key={String(opt)}>
-								<Box width={2}>
-									<Text color={theme.link}>{isSelected ? '>' : ' '}</Text>
+							return (
+								<Box key={String(opt)}>
+									<Box width={2}>
+										<Text color={theme.link}>{isSelected ? '>' : ' '}</Text>
+									</Box>
+									<Box>
+										<Text color={isSelected ? theme.link : theme.text}>
+											{displayOpt} {isCurrent ? '(current)' : ''}
+										</Text>
+									</Box>
 								</Box>
-								<Box>
-									<Text color={isSelected ? theme.link : theme.text}>
-										{displayOpt} {isCurrent ? '(current)' : ''}
-									</Text>
-								</Box>
-							</Box>
-						);
-					})}
+							);
+						})
+					)}
 				</Box>
 
 				<Text color={theme.dim}>
-					<Text color={theme.link}>↑/↓</Text> Navigate ·{' '}
+					{!activeSetting.isStringInput && <Text><Text color={theme.link}>↑/↓</Text> Navigate · </Text>}
 					<Text color={theme.link}>enter</Text> Save ·{' '}
 					<Text color={theme.link}>esc</Text> Back
 				</Text>
@@ -175,12 +202,17 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 									config.settings[
 										activeSetting.key as keyof typeof config.settings
 									];
-								const opts = activeSetting.options;
-								const currentIdx = Math.max(
-									0,
-									opts.indexOf(currentVal as never),
-								);
-								setEditOptionIndex(currentIdx);
+								
+								if (activeSetting.isStringInput) {
+									setEditStringValue(String(currentVal || ''));
+								} else {
+									const opts = activeSetting.options!;
+									const currentIdx = Math.max(
+										0,
+										opts.indexOf(currentVal as never),
+									);
+									setEditOptionIndex(currentIdx);
+								}
 								setIsEditing(true);
 							}
 						}}

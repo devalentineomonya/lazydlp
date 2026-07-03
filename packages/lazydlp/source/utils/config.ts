@@ -13,17 +13,18 @@ export const ConfigSchema = z.object({
 			url: z.string(),
 			date: z.string(),
 			title: z.string().optional(),
+			filepath: z.string().optional(),
 		}),
 	),
-	settings: z
-		.object({
-			downloadType: z.enum(['video', 'audio']).default('video'),
-			resolution: z.enum(['best', '1080p', '720p', '480p']).default('best'),
-			audioFormat: z.enum(['best', 'mp3', 'm4a', 'wav']).default('best'),
-			playlists: z.boolean().default(false),
-			subtitles: z.boolean().default(false),
-			jsRuntime: z.enum(['default', 'node', 'bun', 'deno']).default('default'),
-		}),
+	settings: z.object({
+		downloadType: z.enum(['video', 'audio']).default('video'),
+		resolution: z.enum(['best', '1080p', '720p', '480p']).default('best'),
+		audioFormat: z.enum(['best', 'mp3', 'm4a', 'wav']).default('best'),
+		playlists: z.boolean().default(false),
+		subtitles: z.boolean().default(false),
+		jsRuntime: z.enum(['default', 'node', 'bun', 'deno']).default('default'),
+		defaultApp: z.string().optional(),
+	}),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -38,6 +39,7 @@ const DEFAULT_CONFIG: Config = {
 		playlists: false,
 		subtitles: false,
 		jsRuntime: 'default',
+		defaultApp: undefined,
 	},
 };
 
