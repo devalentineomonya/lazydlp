@@ -1,17 +1,25 @@
 import {Box, Text, useInput} from 'ink';
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {theme} from '../utils/theme.js';
 import {getYtDlpVersion} from '../utils/version.js';
+import {COMMANDS, SHORTCUTS} from '../utils/commands.js';
 
-export default function HelpMenu({initialTab = 0}: {initialTab?: number}) {
+export default function HelpMenu({initialTab = 0, onExit}: {initialTab?: number, onExit: () => void}) {
 	const [activeTab, setActiveTab] = useState(initialTab);
+	const [ytVersion, setYtVersion] = useState('Loading...');
 	const tabs = ['general', 'commands', 'shortcuts'];
+
+	useEffect(() => {
+		getYtDlpVersion().then(setYtVersion);
+	}, []);
 
 	useInput((_, key) => {
 		if (key.leftArrow) {
 			setActiveTab(prev => Math.max(0, prev - 1));
 		} else if (key.rightArrow || key.tab) {
 			setActiveTab(prev => Math.min(tabs.length - 1, prev + 1));
+		} else if (key.escape) {
+			onExit();
 		}
 	});
 
@@ -54,7 +62,7 @@ export default function HelpMenu({initialTab = 0}: {initialTab?: number}) {
 						</Box>
 						<Box flexDirection="column" width="50%">
 							<Text bold>yt-dlp version</Text>
-							<Text color={theme.dim}>{getYtDlpVersion()}</Text>
+							<Text color={theme.dim}>{ytVersion}</Text>
 						</Box>
 					</Box>
 				</Box>
@@ -66,48 +74,14 @@ export default function HelpMenu({initialTab = 0}: {initialTab?: number}) {
 						<Text bold>Available Commands</Text>
 					</Box>
 					<Box flexDirection="column" marginBottom={1}>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>/download</Text>
+						{COMMANDS.map(cmd => (
+							<Box flexDirection="row" key={cmd.name}>
+								<Box width={20}>
+									<Text color={theme.link}>{cmd.name}</Text>
+								</Box>
+								<Text color={theme.dim}>{cmd.description}</Text>
 							</Box>
-							<Text color={theme.dim}>Download a video URL</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>/setdir</Text>
-							</Box>
-							<Text color={theme.dim}>Change download directory</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>/update</Text>
-							</Box>
-							<Text color={theme.dim}>Update lazydlp & yt-dlp</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>/configure</Text>
-							</Box>
-							<Text color={theme.dim}>Run setup wizard</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>/clear</Text>
-							</Box>
-							<Text color={theme.dim}>Clear message history</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>/help</Text>
-							</Box>
-							<Text color={theme.dim}>Show this menu</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>/exit</Text>
-							</Box>
-							<Text color={theme.dim}>Close application</Text>
-						</Box>
+						))}
 					</Box>
 				</Box>
 			)}
@@ -118,36 +92,14 @@ export default function HelpMenu({initialTab = 0}: {initialTab?: number}) {
 						<Text bold>Keyboard Shortcuts</Text>
 					</Box>
 					<Box flexDirection="column" marginBottom={1}>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>↑ / ↓</Text>
+						{SHORTCUTS.map(shortcut => (
+							<Box flexDirection="row" key={shortcut.key}>
+								<Box width={20}>
+									<Text color={theme.link}>{shortcut.key}</Text>
+								</Box>
+								<Text color={theme.dim}>{shortcut.desc}</Text>
 							</Box>
-							<Text color={theme.dim}>Navigate suggestions</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>← / →</Text>
-							</Box>
-							<Text color={theme.dim}>Switch tab view</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>enter</Text>
-							</Box>
-							<Text color={theme.dim}>Execute command</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>esc</Text>
-							</Box>
-							<Text color={theme.dim}>Close dialog / cancel</Text>
-						</Box>
-						<Box flexDirection="row">
-							<Box width={20}>
-								<Text color={theme.link}>ctrl + c</Text>
-							</Box>
-							<Text color={theme.dim}>Force exit</Text>
-						</Box>
+						))}
 					</Box>
 				</Box>
 			)}

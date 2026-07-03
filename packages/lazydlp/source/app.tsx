@@ -7,8 +7,11 @@ import HelpMenu from './components/help-menu.js';
 import SettingsMenu from './components/settings-menu.js';
 import MessageHistory from './components/message-history.js';
 import StatusBar from './components/status-bar.js';
+import RecentMenu from './components/recent-menu.js';
 import WelcomeHeader from './components/welcome-header.js';
+import ActionMenu from './components/action-menu.js';
 import {useAppState} from './hooks/use-app-state.js';
+import {FileAction, FILE_ACTION_LABELS} from './utils/media.js';
 
 export default function App() {
 	const {
@@ -21,12 +24,17 @@ export default function App() {
 		showHelp,
 		showSettings,
 		setShowSettings,
+		showRecent,
+		setShowRecent,
+		setShowHelp,
+		addMessage,
 		helpTab,
 		inputKey,
 		suggestions,
 		handleSubmit,
 		postDownloadPrompt,
 		promptOptionIndex,
+		setHistoryIndex,
 	} = useAppState();
 
 	return (
@@ -51,29 +59,38 @@ export default function App() {
 				suggestions={suggestions}
 				selectedIndex={selectedIndex}
 				inputKey={inputKey}
-				isActive={!showSettings && !showHelp && !postDownloadPrompt}
+				isActive={!showSettings && !showHelp && !postDownloadPrompt && !showRecent}
+				setHistoryIndex={setHistoryIndex}
 			/>
 
 			{postDownloadPrompt && (
-				<Box flexDirection="column" borderStyle="round" borderColor={theme.success} paddingX={1} marginY={1}>
-					<Text bold color={theme.success}>Download Complete!</Text>
-					<Text color={theme.text} wrap="truncate-end">{postDownloadPrompt.title || postDownloadPrompt.filepath}</Text>
-					<Box flexDirection="row" marginTop={1}>
-						{['Open', 'Open Location', 'Delete'].map((label, i) => (
-							<Box key={i} marginRight={2}>
-								<Text color={i === promptOptionIndex ? theme.primary : theme.dim} bold={i === promptOptionIndex}>
-									{i === promptOptionIndex ? '▶ ' : '  '}{label}
-								</Text>
-							</Box>
-						))}
-					</Box>
-				</Box>
+				<ActionMenu
+					title={`Download Complete: ${postDownloadPrompt.title || postDownloadPrompt.filepath}`}
+					header="What next?"
+					options={['open', 'location', 'delete'].map(a => FILE_ACTION_LABELS[a as FileAction])}
+					selectedIndex={promptOptionIndex}
+					showNumbers={true}
+				/>
 			)}
 
-			{showSettings && <SettingsMenu onExit={() => setShowSettings(false)} />}
-			{showHelp && <HelpMenu initialTab={helpTab} />}
+			{showSettings && <SettingsMenu onExit={() => { setShowSettings(false); addMessage('system', 'Settings saved'); }} />}
+			{showRecent && <RecentMenu onExit={() => { setShowRecent(false); addMessage('system', 'Closed recent downloads menu'); }} />}
+			{showHelp && <HelpMenu initialTab={helpTab} onExit={() => { setShowHelp(false); addMessage('system', 'Help dialog dismissed'); }} />}
 
-			<StatusBar ctrlCPressed={ctrlCPressed} showHelp={showHelp} />
+			<StatusBar
+				ctrlCPressed={ctrlCPressed}
+				activeMenu={
+					showHelp
+						? 'help'
+						: showSettings
+						? 'settings'
+						: showRecent
+						? 'recent'
+						: postDownloadPrompt
+						? 'prompt'
+						: null
+				}
+			/>
 		</Box>
 	);
 }

@@ -3,8 +3,18 @@ import TextInput from 'ink-text-input';
 import React, {useState} from 'react';
 import {theme} from '../utils/theme.js';
 import {useConfigStore} from '../store/config-store.js';
+import {Config} from '../utils/config.js';
 
-const SETTINGS_DEF = [
+type SettingDef = {
+	key: keyof Config['settings'];
+	label: string;
+	description: string;
+	options: (string | boolean)[];
+	format?: (v: any) => string;
+	allowCustom?: boolean;
+};
+
+const SETTINGS_DEF: SettingDef[] = [
 	{
 		key: 'downloadType',
 		label: 'Download Type',
@@ -29,7 +39,7 @@ const SETTINGS_DEF = [
 		description:
 			'Whether to download entire playlists or just the single video',
 		options: [true, false],
-		format: (v: boolean) => (v ? 'yes' : 'no'),
+		format: (v: any) => (v ? 'yes' : 'no'),
 	},
 	{
 		key: 'subtitles',
@@ -37,19 +47,37 @@ const SETTINGS_DEF = [
 		description:
 			'Whether to embed auto-generated or manual subtitles if available',
 		options: [true, false],
-		format: (v: boolean) => (v ? 'yes' : 'no'),
+		format: (v: any) => (v ? 'yes' : 'no'),
 	},
 	{
 		key: 'jsRuntime',
 		label: 'JS Runtime',
-		description: 'JavaScript engine to use for extracting complex videos',
-		options: ['default', 'node', 'bun', 'deno'],
+		description: 'JavaScript runtime for extracting some websites.',
+		options: ['default', 'node', 'deno', 'Custom...'],
+		allowCustom: true,
+	},
+	{
+		key: 'antiBanSleep',
+		label: 'Anti-Ban Sleep Mode',
+		description: 'Bypass 429 Too Many Requests errors by adding randomized delays (Warning: Slower)',
+		options: [true, false],
+		format: (v: any) => (v ? 'enabled' : 'disabled'),
 	},
 	{
 		key: 'defaultApp',
 		label: 'Default Media App',
 		description: 'App to open files with (e.g. vlc, mpv). Empty means system default.',
-		isStringInput: true,
+		options: ['', 'vlc', 'mpv', 'Custom...'],
+		format: (v: any) => v === '' ? 'system default' : String(v),
+		allowCustom: true,
+	},
+	{
+		key: 'cookiesFromBrowser',
+		label: 'Browser Cookies',
+		description: 'Extract cookies from browser (e.g., chrome, firefox) to bypass rate limits.',
+		options: ['', 'chrome', 'firefox', 'brave', 'edge', 'opera', 'vivaldi', 'safari', 'Custom...'],
+		format: (v: any) => v === '' ? 'none' : String(v),
+		allowCustom: true,
 	},
 ];
 
@@ -59,6 +87,7 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editOptionIndex, setEditOptionIndex] = useState(0);
 	const [editStringValue, setEditStringValue] = useState('');
+	const [isEditingCustomInput, setIsEditingCustomInput] = useState(false);
 	const [search, setSearch] = useState('');
 
 	const filteredSettings = SETTINGS_DEF.filter(s =>
@@ -70,16 +99,21 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 	useInput((_, key) => {
 		if (isEditing && activeSetting) {
 			if (key.escape) {
-				setIsEditing(false);
+				if (isEditingCustomInput) {
+					setIsEditingCustomInput(false);
+				} else {
+					setIsEditing(false);
+				}
 				return;
 			}
 			
-			if (activeSetting.isStringInput) {
+			if (isEditingCustomInput) {
 				if (key.return) {
 					updateSetting(
-						activeSetting.key as keyof typeof config.settings,
+						activeSetting.key,
 						editStringValue as never,
 					);
+					setIsEditingCustomInput(false);
 					setIsEditing(false);
 				}
 				return;
@@ -91,9 +125,15 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 			} else if (key.downArrow) {
 				setEditOptionIndex(prev => Math.min(options.length - 1, prev + 1));
 			} else if (key.return) {
+				const selectedOpt = options[editOptionIndex] as string;
+				if (selectedOpt === 'Custom...') {
+					setIsEditingCustomInput(true);
+					setEditStringValue(String(config.settings[activeSetting.key] || ''));
+					return;
+				}
 				updateSetting(
-					activeSetting.key as keyof typeof config.settings,
-					options[editOptionIndex] as never,
+					activeSetting.key,
+					selectedOpt as never,
 				);
 				setIsEditing(false);
 			}
@@ -127,7 +167,7 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 				</Box>
 
 				<Box flexDirection="column" marginBottom={1}>
-					{activeSetting.isStringInput ? (
+					{isEditingCustomInput ? (
 						<Box flexDirection="row">
 							<Text color={theme.link}>&gt; </Text>
 							<TextInput
@@ -136,14 +176,13 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 							/>
 						</Box>
 					) : (
-						activeSetting.options!.map((opt, i) => {
+						activeSetting.options.map((opt, i) => {
 							const isSelected = i === editOptionIndex;
+							const currentVal = config.settings[activeSetting.key] ?? '';
 							const isCurrent =
-								config.settings[
-									activeSetting.key as keyof typeof config.settings
-								] === opt;
+								currentVal === opt || (opt === 'Custom...' && activeSetting.allowCustom && !activeSetting.options.includes(currentVal as any));
 							const displayOpt = activeSetting.format
-								? activeSetting.format(opt as boolean)
+								? activeSetting.format(opt)
 								: String(opt);
 
 							return (
@@ -162,11 +201,7 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 					)}
 				</Box>
 
-				<Text color={theme.dim}>
-					{!activeSetting.isStringInput && <Text><Text color={theme.link}>↑/↓</Text> Navigate · </Text>}
-					<Text color={theme.link}>enter</Text> Save ·{' '}
-					<Text color={theme.link}>esc</Text> Back
-				</Text>
+				<Box marginTop={1} />
 			</Box>
 		);
 	}
@@ -198,21 +233,15 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 						}}
 						onSubmit={() => {
 							if (activeSetting) {
-								const currentVal =
-									config.settings[
-										activeSetting.key as keyof typeof config.settings
-									];
+								const currentVal = config.settings[activeSetting.key];
 								
-								if (activeSetting.isStringInput) {
-									setEditStringValue(String(currentVal || ''));
-								} else {
-									const opts = activeSetting.options!;
-									const currentIdx = Math.max(
-										0,
-										opts.indexOf(currentVal as never),
-									);
-									setEditOptionIndex(currentIdx);
+								const opts = activeSetting.options;
+								let currentIdx = opts.indexOf(currentVal as never);
+								if (currentIdx === -1 && activeSetting.allowCustom) {
+									currentIdx = opts.indexOf('Custom...' as never);
 								}
+								setEditOptionIndex(Math.max(0, currentIdx));
+								
 								setIsEditing(true);
 							}
 						}}
@@ -222,11 +251,10 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 			<Box flexDirection="column" marginBottom={1}>
 				{filteredSettings.map((setting, index) => {
 					const isActive = index === selectedIndex;
-					const val =
-						config.settings[setting.key as keyof typeof config.settings];
+					const val = config.settings[setting.key];
 					const displayVal = setting.format
-						? setting.format(val as boolean)
-						: val;
+						? setting.format(val)
+						: String(val);
 
 					return (
 						<Box key={setting.key}>
@@ -253,12 +281,6 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 					<Text color={theme.dim}>{activeSetting.description}</Text>
 				</Box>
 			)}
-
-			<Text color={theme.dim}>
-				<Text color={theme.link}>↑/↓</Text> Navigate ·{' '}
-				<Text color={theme.link}>enter</Text> Edit ·{' '}
-				<Text color={theme.link}>esc</Text> Exit
-			</Text>
 		</Box>
 	);
 }

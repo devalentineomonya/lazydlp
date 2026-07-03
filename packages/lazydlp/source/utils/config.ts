@@ -22,9 +22,12 @@ export const ConfigSchema = z.object({
 		audioFormat: z.enum(['best', 'mp3', 'm4a', 'wav']).default('best'),
 		playlists: z.boolean().default(false),
 		subtitles: z.boolean().default(false),
-		jsRuntime: z.enum(['default', 'node', 'bun', 'deno']).default('default'),
+		jsRuntime: z.string().default('default'),
 		defaultApp: z.string().optional(),
+		cookiesFromBrowser: z.string().optional(),
+		antiBanSleep: z.boolean().default(false),
 	}),
+	commandHistory: z.array(z.string()).default([]),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -40,7 +43,10 @@ const DEFAULT_CONFIG: Config = {
 		subtitles: false,
 		jsRuntime: 'default',
 		defaultApp: undefined,
+		cookiesFromBrowser: undefined,
+		antiBanSleep: false,
 	},
+	commandHistory: [],
 };
 
 export const loadConfig = (): Config => {

@@ -17,6 +17,7 @@ type Props = {
 	selectedIndex: number;
 	inputKey: number;
 	isActive: boolean;
+	setHistoryIndex: (val: number) => void;
 };
 
 export default function CommandInput({
@@ -28,6 +29,7 @@ export default function CommandInput({
 	selectedIndex,
 	inputKey,
 	isActive,
+	setHistoryIndex,
 }: Props) {
 	const VISIBLE_COUNT = 5;
 	let startIdx = Math.max(0, selectedIndex - Math.floor(VISIBLE_COUNT / 2));
@@ -60,7 +62,10 @@ export default function CommandInput({
 					<TextInput
 						key={inputKey}
 						value={input}
-						onChange={setInput}
+						onChange={val => {
+							setInput(val);
+							setHistoryIndex(-1);
+						}}
 						onSubmit={onSubmit}
 						placeholder=""
 						focus={isActive}

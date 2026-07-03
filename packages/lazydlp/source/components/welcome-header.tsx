@@ -12,7 +12,7 @@ const makeLink = (text: string, url: string) => {
 
 export default function WelcomeHeader() {
 	const {config} = useConfigStore();
-	const recents = config.recentDownloads.slice(0, 3);
+	const recents = config.recentDownloads.slice(0, 2);
 
 	const [width, setWidth] = useState(process.stdout.columns || 80);
 
@@ -79,9 +79,14 @@ export default function WelcomeHeader() {
 					borderLeft={false}
 					borderRight={false}
 				/>
-				<Text color={theme.primary} bold>
-					Recent activity
-				</Text>
+				<Box marginBottom={1} flexDirection="row" justifyContent="space-between">
+					<Text bold color={theme.primary}>
+						Recent activity
+					</Text>
+					{config.recentDownloads.length > 2 && (
+						<Text color={theme.dim}>(Type /recent to see all)</Text>
+					)}
+				</Box>
 				{recents.length > 0 ? (
 					recents.map((recent, i) => (
 						<Box key={i} flexDirection="column">
