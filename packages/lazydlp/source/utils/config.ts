@@ -32,8 +32,18 @@ export const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
+const getDefaultDownloadDir = () => {
+	if (os.platform() === 'android') {
+		const termuxStorage = path.join(os.homedir(), 'storage');
+		if (fs.existsSync(termuxStorage)) {
+			return path.join(termuxStorage, 'downloads');
+		}
+	}
+	return path.join(os.homedir(), 'Downloads');
+};
+
 const DEFAULT_CONFIG: Config = {
-	downloadDir: path.join(os.homedir(), 'Downloads'),
+	downloadDir: getDefaultDownloadDir(),
 	recentDownloads: [],
 	settings: {
 		downloadType: 'video',
