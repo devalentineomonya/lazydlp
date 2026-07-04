@@ -274,25 +274,44 @@ export function useYtDlp({
 
 		const args = [...dlpCmd.args, '-P', config.downloadDir];
 
-		const isAudioOverride = customArgs.includes('--audio');
-		const isVideoOverride = customArgs.includes('--video');
-		const cleanArgs = customArgs.filter(a => a !== '--audio' && a !== '--video');
+		let cleanArgs = [...customArgs];
 
-		const downloadType = isAudioOverride ? 'audio' : (isVideoOverride ? 'video' : config.settings.downloadType);
+		const tIndex = cleanArgs.indexOf('-t');
+		let customFormat = '';
+		if (tIndex !== -1 && cleanArgs[tIndex + 1]) {
+			customFormat = cleanArgs[tIndex + 1]!;
+			cleanArgs.splice(tIndex, 2);
+		}
+
+		const isAudioOverride = cleanArgs.includes('--audio');
+		const isVideoOverride = cleanArgs.includes('--video');
+		cleanArgs = cleanArgs.filter(a => a !== '--audio' && a !== '--video');
 
 		// If the user manually provided format sorting/presets, skip our default formatting
-		const hasFormatOverride = cleanArgs.includes('-f') || cleanArgs.includes('--format') || cleanArgs.includes('-S') || cleanArgs.includes('--format-sort') || cleanArgs.includes('-t') || cleanArgs.includes('--preset-alias');
+		const hasFormatOverride = cleanArgs.includes('-f') || cleanArgs.includes('--format') || cleanArgs.includes('-S') || cleanArgs.includes('--format-sort');
 
 		if (!hasFormatOverride) {
-			if (downloadType === 'audio') {
-				args.push('-x', '--audio-format', config.settings.audioFormat);
-			} else {
-				const sortArgs = [];
-				if (config.settings.resolution !== 'best') {
-					sortArgs.push(`res:${config.settings.resolution.replace('p', '')}`);
+			if (isAudioOverride) {
+				args.push('-f', 'bestaudio/best', '-x');
+			} else if (isVideoOverride) {
+				args.push('-f', 'bestvideo+bestaudio/best');
+			} else if (customFormat) {
+				if (customFormat === 'mp3' || customFormat === 'm4a' || customFormat === 'wav') {
+					args.push('-x', '--audio-format', customFormat);
+				} else {
+					args.push('-S', `ext:${customFormat}`);
 				}
-				sortArgs.push(`ext:mp4:m4a`);
-				args.push('-S', sortArgs.join(','));
+			} else {
+				if (config.settings.downloadType === 'audio') {
+					args.push('-x', '--audio-format', config.settings.audioFormat);
+				} else {
+					const sortArgs = [];
+					if (config.settings.resolution !== 'best') {
+						sortArgs.push(`res:${config.settings.resolution.replace('p', '')}`);
+					}
+					sortArgs.push(`ext:mp4:m4a`);
+					args.push('-S', sortArgs.join(','));
+				}
 			}
 		}
 
