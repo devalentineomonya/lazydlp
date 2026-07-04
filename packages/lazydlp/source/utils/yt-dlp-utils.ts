@@ -5,6 +5,95 @@ import path from 'node:path';
 
 let cachedDlpCmd: {cmd: string; args: string[]} | null | undefined = undefined;
 
+import {Config} from './config.js';
+
+export const buildYtDlpArgs = (
+	url: string,
+	customArgs: string[],
+	config: Config,
+	baseArgs: string[] = [],
+): string[] => {
+	const args = [...baseArgs, '-P', config.downloadDir];
+
+	let cleanArgs = [...customArgs];
+
+	const tIndex = cleanArgs.indexOf('-t');
+	let customFormat = '';
+	if (tIndex !== -1 && cleanArgs[tIndex + 1]) {
+		customFormat = cleanArgs[tIndex + 1]!;
+		cleanArgs.splice(tIndex, 2);
+	}
+
+	const isAudioOverride = cleanArgs.includes('--audio');
+	const isVideoOverride = cleanArgs.includes('--video');
+	cleanArgs = cleanArgs.filter(a => a !== '--audio' && a !== '--video');
+
+	const hasFormatOverride =
+		cleanArgs.includes('-f') ||
+		cleanArgs.includes('--format') ||
+		cleanArgs.includes('-S') ||
+		cleanArgs.includes('--format-sort');
+
+	if (!hasFormatOverride) {
+		if (isAudioOverride) {
+			args.push('-f', 'bestaudio/best', '-x');
+		} else if (isVideoOverride) {
+			args.push('-f', 'bestvideo+bestaudio/best');
+		} else if (customFormat) {
+			if (['mp3', 'm4a', 'wav'].includes(customFormat)) {
+				args.push('-x', '--audio-format', customFormat);
+			} else {
+				args.push('-S', `ext:${customFormat}`);
+			}
+		} else {
+			if (config.settings.downloadType === 'audio') {
+				args.push('-x', '--audio-format', config.settings.audioFormat);
+			} else {
+				const sortArgs = [];
+				if (config.settings.resolution !== 'best') {
+					sortArgs.push(`res:${config.settings.resolution.replace('p', '')}`);
+				}
+				sortArgs.push(`ext:mp4:m4a`);
+				args.push('-S', sortArgs.join(','));
+			}
+		}
+	}
+
+	if (config.settings.playlists) {
+		args.push('--yes-playlist');
+	} else {
+		args.push('--no-playlist');
+	}
+
+	if (config.settings.subtitles) {
+		args.push('--write-auto-sub', '--write-sub', '--embed-subs');
+	}
+
+	if (config.settings.jsRuntime !== 'default') {
+		args.push('--js-runtimes', config.settings.jsRuntime);
+	}
+
+	if (config.settings.cookiesFromBrowser) {
+		args.push('--cookies-from-browser', config.settings.cookiesFromBrowser);
+	}
+
+	if (config.settings.antiBanSleep) {
+		args.push(
+			'--sleep-requests',
+			'1',
+			'--sleep-interval',
+			'5',
+			'--max-sleep-interval',
+			'10',
+		);
+	}
+
+	args.push(...cleanArgs);
+	args.push(url);
+
+	return args;
+};
+
 export const findPython = async (): Promise<string | null> => {
 	for (const cmd of ['python3', 'python', 'py']) {
 		try {

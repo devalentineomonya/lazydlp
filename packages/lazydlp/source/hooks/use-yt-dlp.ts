@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
-import {getDlpPath, findPython, resetDlpCache} from '../utils/yt-dlp-utils.js';
+import {getDlpPath, findPython, resetDlpCache, buildYtDlpArgs} from '../utils/yt-dlp-utils.js';
 import {resetYtDlpVersionCache} from '../utils/version.js';
 import {Config} from '../utils/config.js';
 
@@ -272,73 +272,7 @@ export function useYtDlp({
 		setIsDownloading(true);
 		addMessage('system', `Starting download for: ${url}`);
 
-		const args = [...dlpCmd.args, '-P', config.downloadDir];
-
-		let cleanArgs = [...customArgs];
-
-		const tIndex = cleanArgs.indexOf('-t');
-		let customFormat = '';
-		if (tIndex !== -1 && cleanArgs[tIndex + 1]) {
-			customFormat = cleanArgs[tIndex + 1]!;
-			cleanArgs.splice(tIndex, 2);
-		}
-
-		const isAudioOverride = cleanArgs.includes('--audio');
-		const isVideoOverride = cleanArgs.includes('--video');
-		cleanArgs = cleanArgs.filter(a => a !== '--audio' && a !== '--video');
-
-		// If the user manually provided format sorting/presets, skip our default formatting
-		const hasFormatOverride = cleanArgs.includes('-f') || cleanArgs.includes('--format') || cleanArgs.includes('-S') || cleanArgs.includes('--format-sort');
-
-		if (!hasFormatOverride) {
-			if (isAudioOverride) {
-				args.push('-f', 'bestaudio/best', '-x');
-			} else if (isVideoOverride) {
-				args.push('-f', 'bestvideo+bestaudio/best');
-			} else if (customFormat) {
-				if (customFormat === 'mp3' || customFormat === 'm4a' || customFormat === 'wav') {
-					args.push('-x', '--audio-format', customFormat);
-				} else {
-					args.push('-S', `ext:${customFormat}`);
-				}
-			} else {
-				if (config.settings.downloadType === 'audio') {
-					args.push('-x', '--audio-format', config.settings.audioFormat);
-				} else {
-					const sortArgs = [];
-					if (config.settings.resolution !== 'best') {
-						sortArgs.push(`res:${config.settings.resolution.replace('p', '')}`);
-					}
-					sortArgs.push(`ext:mp4:m4a`);
-					args.push('-S', sortArgs.join(','));
-				}
-			}
-		}
-
-		if (config.settings.playlists) {
-			args.push('--yes-playlist');
-		} else {
-			args.push('--no-playlist');
-		}
-
-		if (config.settings.subtitles) {
-			args.push('--write-auto-sub', '--write-sub', '--embed-subs');
-		}
-
-		if (config.settings.jsRuntime !== 'default') {
-			args.push('--js-runtimes', config.settings.jsRuntime);
-		}
-
-		if (config.settings.cookiesFromBrowser) {
-			args.push('--cookies-from-browser', config.settings.cookiesFromBrowser);
-		}
-
-		if (config.settings.antiBanSleep) {
-			args.push('--sleep-requests', '1', '--sleep-interval', '5', '--max-sleep-interval', '10');
-		}
-
-		args.push(...cleanArgs);
-		args.push(url);
+		const args = buildYtDlpArgs(url, customArgs, config, dlpCmd.args);
 
 		if (!fs.existsSync(config.downloadDir)) {
 			fs.mkdirSync(config.downloadDir, { recursive: true });
