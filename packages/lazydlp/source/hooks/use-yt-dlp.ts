@@ -384,7 +384,19 @@ export function useYtDlp({
 					finalFilepath = path.resolve(config.downloadDir, finalFilepath);
 				}
 				addRecentDownload(url, videoTitle, finalFilepath);
-				
+
+				if (os.platform() === 'android') {
+					const isDir = !finalFilepath || !fs.existsSync(finalFilepath);
+					const scanTarget = isDir ? config.downloadDir : finalFilepath;
+					
+					const scannerArgs = isDir ? ['-r', scanTarget] : [scanTarget];
+					const scanner = spawn('termux-media-scan', scannerArgs);
+					
+					scanner.on('error', () => {
+						addMessage('error', 'Could not run termux-media-scan. If your video is missing from the Gallery, please run: pkg install termux-api');
+					});
+				}
+
 				if (finalFilepath && fs.existsSync(finalFilepath)) {
 					setPostDownloadPrompt({title: videoTitle, filepath: finalFilepath});
 					setPromptOptionIndex(0);
