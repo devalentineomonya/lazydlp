@@ -144,47 +144,65 @@ export function useYtDlp({
 			download(url);
 		};
 
-		const pyCmd = await findPython();
-		if (!pyCmd) {
-			updateMessage(currentLogId, 'No python executable found. Falling back to direct download...', true);
-			fallbackToDirectDownload(currentLogId);
-			return;
-		}
-
-		const pip = spawn(pyCmd, ['-m', 'pip', 'install', '--user', '-U', 'yt-dlp']);
-		activeHandles.current.push(pip);
-
-		pip.stdout.on('data', data => {
-			const text = data.toString().trim();
-			if (text) {
-				updateMessage(currentLogId, `pip: ${text.split('\n').pop()}`, true);
+		const startPipInstall = async () => {
+			const pyCmd = await findPython();
+			if (!pyCmd) {
+				const platform = os.platform();
+				if (platform === 'android' || (platform === 'linux' && process.arch !== 'x64')) {
+					addMessage('error', 'A standalone yt-dlp binary is not available for this architecture/OS. Please install Python (e.g. pkg install python) and try again.');
+					setIsDownloading(false);
+					updateMessage(currentLogId, 'Configuration failed: Python is required.', false);
+				} else {
+					updateMessage(currentLogId, 'No python executable found. Falling back to direct download...', true);
+					fallbackToDirectDownload(currentLogId);
+				}
+				return;
 			}
-		});
-		
-		pip.stderr.on('data', data => {
-			const text = data.toString().trim();
-			if (text) {
-				updateMessage(currentLogId, `pip error: ${text.split('\n').pop()}`, true);
-			}
-		});
 
-		pip.on('close', code => {
-			if (code === 0) {
-				resetYtDlpVersionCache();
-				resetDlpCache();
-				setIsDownloading(false);
-				updateMessage(currentLogId, 'yt-dlp successfully installed via pip!', false);
-				autoConfigureSystemDefaults();
-			} else {
-				updateMessage(currentLogId, 'pip install failed, falling back to direct download...', true);
+			const pip = spawn(pyCmd, ['-m', 'pip', 'install', '--user', '-U', 'yt-dlp']);
+			activeHandles.current.push(pip);
+
+			pip.stdout.on('data', data => {
+				const text = data.toString().trim();
+				if (text) {
+					updateMessage(currentLogId, `pip: ${text.split('\n').pop()}`, true);
+				}
+			});
+			
+			pip.stderr.on('data', data => {
+				const text = data.toString().trim();
+				if (text) {
+					updateMessage(currentLogId, `pip error: ${text.split('\n').pop()}`, true);
+				}
+			});
+
+			pip.on('close', code => {
+				if (code === 0) {
+					resetYtDlpVersionCache();
+					resetDlpCache();
+					setIsDownloading(false);
+					updateMessage(currentLogId, 'yt-dlp successfully installed via pip!', false);
+					autoConfigureSystemDefaults();
+				} else {
+					updateMessage(currentLogId, 'pip install failed, falling back to direct download...', true);
+					fallbackToDirectDownload(currentLogId);
+				}
+			});
+
+			pip.on('error', () => {
+				updateMessage(currentLogId, 'pip execution failed, falling back to direct download...', true);
 				fallbackToDirectDownload(currentLogId);
-			}
-		});
+			});
+		};
 
-		pip.on('error', () => {
-			updateMessage(currentLogId, 'pip execution failed, falling back to direct download...', true);
+		const platform = os.platform();
+		const hasStandaloneBinary = platform === 'win32' || platform === 'darwin' || (platform === 'linux' && process.arch === 'x64');
+
+		if (hasStandaloneBinary) {
 			fallbackToDirectDownload(currentLogId);
-		});
+		} else {
+			startPipInstall();
+		}
 	};
 
 	const autoConfigureSystemDefaults = () => {
@@ -347,14 +365,14 @@ export function useYtDlp({
 			lastUpdate = now;
 
 			const rawLines = outputBuffer.split(/[\n]/);
-			let displayLines: string[] = [];
+			let lastValidLine = '';
 
 			for (const line of rawLines) {
 				const parts = line.split('\r');
 				const actualLine = parts[parts.length - 1];
 				if (actualLine && actualLine.trim()) {
 					const lineStr = actualLine.trim();
-					displayLines.push(lineStr);
+					lastValidLine = lineStr;
 
 					const destMatch = lineStr.match(/\[download\] Destination: (.+)/);
 					if (destMatch && destMatch[1]) downloadedFilepath = destMatch[1];
@@ -365,11 +383,9 @@ export function useYtDlp({
 				}
 			}
 
-			displayLines = displayLines.slice(-30);
-			let finalDisplay = displayLines.join('\n');
+			const progressMatch = lastValidLine.match(/\[download\]\s+([\d\.]+)%/);
+			let finalDisplay = lastValidLine;
 
-			const lastStr = displayLines[displayLines.length - 1] || '';
-			const progressMatch = lastStr.match(/\[download\]\s+([\d\.]+)%/);
 			if (progressMatch) {
 				const percent = parseFloat(progressMatch[1]!);
 				const barWidth = 30;
@@ -378,12 +394,12 @@ export function useYtDlp({
 					'█'.repeat(Math.max(0, filled)) +
 					'░'.repeat(Math.max(0, barWidth - filled));
 
-				const etaMatch = lastStr.match(/ETA\s+([\d:]+)/);
-				const speedMatch = lastStr.match(/at\s+([\d\.\w\/]+)/);
+				const etaMatch = lastValidLine.match(/ETA\s+([\d:]+)/);
+				const speedMatch = lastValidLine.match(/at\s+([\d\.\w\/]+)/);
 				const eta = etaMatch ? etaMatch[1] : '--:--';
 				const speed = speedMatch ? speedMatch[1] : '--';
 
-				finalDisplay += `\n\nProgress: [${bar}] ${percent}% | Speed: ${speed} | ETA: ${eta}`;
+				finalDisplay = `Progress: [${bar}] ${percent}%\nSpeed: ${speed} | ETA: ${eta}`;
 			}
 
 			const newDisplay = finalDisplay.trim();
