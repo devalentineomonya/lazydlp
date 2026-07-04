@@ -334,7 +334,7 @@ export function useYtDlp({
 		}
 
 		if (config.settings.antiBanSleep) {
-			args.push('-t', 'sleep');
+			args.push('--sleep-requests', '1', '--sleep-interval', '5', '--max-sleep-interval', '10');
 		}
 
 		args.push(...cleanArgs);
