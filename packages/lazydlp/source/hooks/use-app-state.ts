@@ -108,7 +108,7 @@ export function useAppState() {
 				setPostDownloadPrompt(null);
 				return;
 			}
-			const actions: FileAction[] = ['open', 'location', 'delete'];
+			const actions: FileAction[] = ['open', 'location', 'delete', 'close'];
 
 			if (key.upArrow) {
 				setPromptOptionIndex(prev => Math.max(0, prev - 1));
@@ -122,11 +122,12 @@ export function useAppState() {
 			if (inputChar === '1') selectedIdx = 0;
 			else if (inputChar === '2') selectedIdx = 1;
 			else if (inputChar === '3') selectedIdx = 2;
+			else if (inputChar === '4') selectedIdx = 3;
 
-			if (key.return || (inputChar && ['1', '2', '3'].includes(inputChar))) {
+			if (key.return || (inputChar && ['1', '2', '3', '4'].includes(inputChar))) {
 				const action = actions[selectedIdx];
 				const filepath = postDownloadPrompt.filepath;
-				if (action) {
+				if (action && action !== 'close') {
 					handleFileAction(
 						action,
 						filepath,

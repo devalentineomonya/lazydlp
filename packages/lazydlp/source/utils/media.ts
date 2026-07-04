@@ -20,13 +20,14 @@ export const playMedia = (filepath: string, defaultApp?: string) => {
 	});
 };
 
-export type FileAction = 'open' | 'location' | 'delete' | 'remove_log';
+export type FileAction = 'open' | 'location' | 'delete' | 'remove_log' | 'close';
 
 export const FILE_ACTION_LABELS: Record<FileAction, string> = {
 	open: 'Open File',
 	location: 'Open Location',
 	delete: 'Delete File',
 	remove_log: 'Remove from History',
+	close: 'Close Menu (Ignore)',
 };
 
 export const handleFileAction = (

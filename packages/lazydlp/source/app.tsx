@@ -69,7 +69,7 @@ export default function App() {
 				<ActionMenu
 					title={`Download Complete: ${postDownloadPrompt.title || postDownloadPrompt.filepath}`}
 					header="What next?"
-					options={['open', 'location', 'delete'].map(
+					options={['open', 'location', 'delete', 'close'].map(
 						a => FILE_ACTION_LABELS[a as FileAction],
 					)}
 					selectedIndex={promptOptionIndex}
