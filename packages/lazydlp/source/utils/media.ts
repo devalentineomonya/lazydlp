@@ -47,31 +47,41 @@ export const handleFileAction = (
 		} else {
 			// Linux: Try DBus first (highlights the file in most modern DEs)
 			import('node:child_process').then(({exec, spawn}) => {
-				exec(`dbus-send --print-reply --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:"file://${filepath}" string:""`, (err) => {
-					if (err) {
-						// Fallback to explicit file managers if DBus fails
-						const dir = path.dirname(filepath);
-						const fileManagers = ['nautilus', 'thunar', 'dolphin', 'pcmanfm', 'caja', 'nemo'];
-						let found = false;
-						
-						const tryManager = (index: number) => {
-							if (index >= fileManagers.length) {
-								if (!found) import('open').then(m => m.default(dir));
-								return;
-							}
-							const fm = fileManagers[index]!;
-							exec(`command -v ${fm}`, (errCheck) => {
-								if (!errCheck) {
-									found = true;
-									spawn(fm, [dir], {detached: true, stdio: 'ignore'}).unref();
-								} else {
-									tryManager(index + 1);
+				exec(
+					`dbus-send --print-reply --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:"file://${filepath}" string:""`,
+					err => {
+						if (err) {
+							// Fallback to explicit file managers if DBus fails
+							const dir = path.dirname(filepath);
+							const fileManagers = [
+								'nautilus',
+								'thunar',
+								'dolphin',
+								'pcmanfm',
+								'caja',
+								'nemo',
+							];
+							let found = false;
+
+							const tryManager = (index: number) => {
+								if (index >= fileManagers.length) {
+									if (!found) import('open').then(m => m.default(dir));
+									return;
 								}
-							});
-						};
-						tryManager(0);
-					}
-				});
+								const fm = fileManagers[index]!;
+								exec(`command -v ${fm}`, errCheck => {
+									if (!errCheck) {
+										found = true;
+										spawn(fm, [dir], {detached: true, stdio: 'ignore'}).unref();
+									} else {
+										tryManager(index + 1);
+									}
+								});
+							};
+							tryManager(0);
+						}
+					},
+				);
 			});
 		}
 	} else if (action === 'delete') {

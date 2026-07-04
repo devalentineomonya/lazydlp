@@ -3,21 +3,38 @@ import fs from 'node:fs';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
-import {getDlpPath, findPython, resetDlpCache, buildYtDlpArgs} from '../utils/yt-dlp-utils.js';
+import {
+	getDlpPath,
+	findPython,
+	resetDlpCache,
+	buildYtDlpArgs,
+} from '../utils/yt-dlp-utils.js';
 import {resetYtDlpVersionCache} from '../utils/version.js';
 import {Config} from '../utils/config.js';
 
 interface UseYtDlpProps {
 	config: Config;
-	addMessage: (type: 'user' | 'system' | 'error' | 'yt-dlp', text: string) => void;
+	addMessage: (
+		type: 'user' | 'system' | 'error' | 'yt-dlp',
+		text: string,
+	) => void;
 	updateMessage: (id: string, text: string, isPending?: boolean) => void;
-	addTemporaryMessage: (type: 'user' | 'system' | 'error' | 'yt-dlp', text: string, isPending?: boolean) => string;
+	addTemporaryMessage: (
+		type: 'user' | 'system' | 'error' | 'yt-dlp',
+		text: string,
+		isPending?: boolean,
+	) => string;
 	setIsDownloading: (state: boolean) => void;
 	addRecentDownload: (url: string, title?: string, filepath?: string) => void;
-	setPostDownloadPrompt: (prompt: {title?: string; filepath: string} | null) => void;
+	setPostDownloadPrompt: (
+		prompt: {title?: string; filepath: string} | null,
+	) => void;
 	setPromptOptionIndex: (index: number) => void;
 	activeHandles: React.MutableRefObject<{kill: () => void}[]>;
-	updateSetting: <K extends keyof Config['settings']>(key: K, value: Config['settings'][K]) => void;
+	updateSetting: <K extends keyof Config['settings']>(
+		key: K,
+		value: Config['settings'][K],
+	) => void;
 }
 
 export function useYtDlp({
@@ -47,7 +64,11 @@ export function useYtDlp({
 		setIsDownloading(true);
 		addMessage('system', 'Configuring Lazydlp: Installing yt-dlp...');
 
-		const currentLogId = addTemporaryMessage('system', 'Starting pip install...', true);
+		const currentLogId = addTemporaryMessage(
+			'system',
+			'Starting pip install...',
+			true,
+		);
 
 		const fallbackToDirectDownload = (logId: string) => {
 			const platform = os.platform();
@@ -56,10 +77,20 @@ export function useYtDlp({
 			else if (platform === 'darwin') filename = 'yt-dlp_macos';
 			else if (platform === 'linux') filename = 'yt-dlp_linux';
 
-			if (platform === 'android' || (platform === 'linux' && process.arch !== 'x64')) {
-				addMessage('error', 'A standalone yt-dlp binary is not available for this architecture/OS. Please install Python (e.g. pkg install python) and try again.');
+			if (
+				platform === 'android' ||
+				(platform === 'linux' && process.arch !== 'x64')
+			) {
+				addMessage(
+					'error',
+					'A standalone yt-dlp binary is not available for this architecture/OS. Please install Python (e.g. pkg install python) and try again.',
+				);
 				setIsDownloading(false);
-				updateMessage(logId, 'Configuration failed: Python is required.', false);
+				updateMessage(
+					logId,
+					'Configuration failed: Python is required.',
+					false,
+				);
 				return;
 			}
 
@@ -92,7 +123,10 @@ export function useYtDlp({
 							return;
 						}
 
-						const total = parseInt(response.headers['content-length'] || '0', 10);
+						const total = parseInt(
+							response.headers['content-length'] || '0',
+							10,
+						);
 						let downloaded = 0;
 						let lastUpdate = 0;
 
@@ -148,18 +182,39 @@ export function useYtDlp({
 			const pyCmd = await findPython();
 			if (!pyCmd) {
 				const platform = os.platform();
-				if (platform === 'android' || (platform === 'linux' && process.arch !== 'x64')) {
-					addMessage('error', 'A standalone yt-dlp binary is not available for this architecture/OS. Please install Python (e.g. pkg install python) and try again.');
+				if (
+					platform === 'android' ||
+					(platform === 'linux' && process.arch !== 'x64')
+				) {
+					addMessage(
+						'error',
+						'A standalone yt-dlp binary is not available for this architecture/OS. Please install Python (e.g. pkg install python) and try again.',
+					);
 					setIsDownloading(false);
-					updateMessage(currentLogId, 'Configuration failed: Python is required.', false);
+					updateMessage(
+						currentLogId,
+						'Configuration failed: Python is required.',
+						false,
+					);
 				} else {
-					updateMessage(currentLogId, 'No python executable found. Falling back to direct download...', true);
+					updateMessage(
+						currentLogId,
+						'No python executable found. Falling back to direct download...',
+						true,
+					);
 					fallbackToDirectDownload(currentLogId);
 				}
 				return;
 			}
 
-			const pip = spawn(pyCmd, ['-m', 'pip', 'install', '--user', '-U', 'yt-dlp']);
+			const pip = spawn(pyCmd, [
+				'-m',
+				'pip',
+				'install',
+				'--user',
+				'-U',
+				'yt-dlp',
+			]);
 			activeHandles.current.push(pip);
 
 			pip.stdout.on('data', data => {
@@ -168,11 +223,15 @@ export function useYtDlp({
 					updateMessage(currentLogId, `pip: ${text.split('\n').pop()}`, true);
 				}
 			});
-			
+
 			pip.stderr.on('data', data => {
 				const text = data.toString().trim();
 				if (text) {
-					updateMessage(currentLogId, `pip error: ${text.split('\n').pop()}`, true);
+					updateMessage(
+						currentLogId,
+						`pip error: ${text.split('\n').pop()}`,
+						true,
+					);
 				}
 			});
 
@@ -181,22 +240,37 @@ export function useYtDlp({
 					resetYtDlpVersionCache();
 					resetDlpCache();
 					setIsDownloading(false);
-					updateMessage(currentLogId, 'yt-dlp successfully installed via pip!', false);
+					updateMessage(
+						currentLogId,
+						'yt-dlp successfully installed via pip!',
+						false,
+					);
 					autoConfigureSystemDefaults();
 				} else {
-					updateMessage(currentLogId, 'pip install failed, falling back to direct download...', true);
+					updateMessage(
+						currentLogId,
+						'pip install failed, falling back to direct download...',
+						true,
+					);
 					fallbackToDirectDownload(currentLogId);
 				}
 			});
 
 			pip.on('error', () => {
-				updateMessage(currentLogId, 'pip execution failed, falling back to direct download...', true);
+				updateMessage(
+					currentLogId,
+					'pip execution failed, falling back to direct download...',
+					true,
+				);
 				fallbackToDirectDownload(currentLogId);
 			});
 		};
 
 		const platform = os.platform();
-		const hasStandaloneBinary = platform === 'win32' || platform === 'darwin' || (platform === 'linux' && process.arch === 'x64');
+		const hasStandaloneBinary =
+			platform === 'win32' ||
+			platform === 'darwin' ||
+			(platform === 'linux' && process.arch === 'x64');
 
 		if (hasStandaloneBinary) {
 			fallbackToDirectDownload(currentLogId);
@@ -221,7 +295,10 @@ export function useYtDlp({
 			}
 
 			// Auto-detect media player (mpv -> vlc)
-			if (!config.settings.defaultApp || config.settings.defaultApp === 'system default') {
+			if (
+				!config.settings.defaultApp ||
+				config.settings.defaultApp === 'system default'
+			) {
 				const players = ['mpv', 'vlc'];
 				for (const p of players) {
 					try {
@@ -256,10 +333,7 @@ export function useYtDlp({
 		});
 	};
 
-	const handleDownload = async (
-		url: string,
-		customArgs: string[] = [],
-	) => {
+	const handleDownload = async (url: string, customArgs: string[] = []) => {
 		const dlpCmd = await getDlpPath();
 		if (!dlpCmd) {
 			addMessage(
@@ -275,7 +349,7 @@ export function useYtDlp({
 		const args = buildYtDlpArgs(url, customArgs, config, dlpCmd.args);
 
 		if (!fs.existsSync(config.downloadDir)) {
-			fs.mkdirSync(config.downloadDir, { recursive: true });
+			fs.mkdirSync(config.downloadDir, {recursive: true});
 		}
 
 		const ytDlp = spawn(dlpCmd.cmd, args, {
@@ -329,10 +403,15 @@ export function useYtDlp({
 
 					const destMatch = lineStr.match(/\[download\] Destination: (.+)/);
 					if (destMatch && destMatch[1]) downloadedFilepath = destMatch[1];
-					const mergeMatch = lineStr.match(/\[Merger\] Merging formats into "([^"]+)"/);
+					const mergeMatch = lineStr.match(
+						/\[Merger\] Merging formats into "([^"]+)"/,
+					);
 					if (mergeMatch && mergeMatch[1]) downloadedFilepath = mergeMatch[1];
-					const alreadyMatch = lineStr.match(/\[download\] (.*) has already been downloaded/);
-					if (alreadyMatch && alreadyMatch[1]) downloadedFilepath = alreadyMatch[1];
+					const alreadyMatch = lineStr.match(
+						/\[download\] (.*) has already been downloaded/,
+					);
+					if (alreadyMatch && alreadyMatch[1])
+						downloadedFilepath = alreadyMatch[1];
 				}
 			}
 
@@ -374,7 +453,11 @@ export function useYtDlp({
 			updateLastOutput('', true);
 			setIsDownloading(false);
 			if (code === 0) {
-				updateMessage(currentLogId, `${lastDisplay}\n\nDownload finished successfully.`, false);
+				updateMessage(
+					currentLogId,
+					`${lastDisplay}\n\nDownload finished successfully.`,
+					false,
+				);
 				addMessage(
 					'system',
 					`Download completed successfully to ${config.downloadDir}.`,
@@ -388,12 +471,15 @@ export function useYtDlp({
 				if (os.platform() === 'android') {
 					const isDir = !finalFilepath || !fs.existsSync(finalFilepath);
 					const scanTarget = isDir ? config.downloadDir : finalFilepath;
-					
+
 					const scannerArgs = isDir ? ['-r', scanTarget] : [scanTarget];
 					const scanner = spawn('termux-media-scan', scannerArgs);
-					
+
 					scanner.on('error', () => {
-						addMessage('error', 'Could not run termux-media-scan. If your video is missing from the Gallery, please run: pkg install termux-api');
+						addMessage(
+							'error',
+							'Could not run termux-media-scan. If your video is missing from the Gallery, please run: pkg install termux-api',
+						);
 					});
 				}
 
@@ -402,7 +488,11 @@ export function useYtDlp({
 					setPromptOptionIndex(0);
 				}
 			} else {
-				updateMessage(currentLogId, `${lastDisplay}\n\nDownload failed.`, false);
+				updateMessage(
+					currentLogId,
+					`${lastDisplay}\n\nDownload failed.`,
+					false,
+				);
 				addMessage('error', `yt-dlp exited with code ${code}`);
 			}
 		});

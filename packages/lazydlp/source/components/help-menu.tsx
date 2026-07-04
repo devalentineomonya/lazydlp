@@ -4,7 +4,13 @@ import {theme} from '../utils/theme.js';
 import {getYtDlpVersion} from '../utils/version.js';
 import {COMMANDS, SHORTCUTS} from '../utils/commands.js';
 
-export default function HelpMenu({initialTab = 0, onExit}: {initialTab?: number, onExit: () => void}) {
+export default function HelpMenu({
+	initialTab = 0,
+	onExit,
+}: {
+	initialTab?: number;
+	onExit: () => void;
+}) {
 	const [activeTab, setActiveTab] = useState(initialTab);
 	const [ytVersion, setYtVersion] = useState('Loading...');
 	const tabs = ['general', 'commands', 'shortcuts'];

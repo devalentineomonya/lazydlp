@@ -59,7 +59,9 @@ export default function App() {
 				suggestions={suggestions}
 				selectedIndex={selectedIndex}
 				inputKey={inputKey}
-				isActive={!showSettings && !showHelp && !postDownloadPrompt && !showRecent}
+				isActive={
+					!showSettings && !showHelp && !postDownloadPrompt && !showRecent
+				}
 				setHistoryIndex={setHistoryIndex}
 			/>
 
@@ -67,15 +69,39 @@ export default function App() {
 				<ActionMenu
 					title={`Download Complete: ${postDownloadPrompt.title || postDownloadPrompt.filepath}`}
 					header="What next?"
-					options={['open', 'location', 'delete'].map(a => FILE_ACTION_LABELS[a as FileAction])}
+					options={['open', 'location', 'delete'].map(
+						a => FILE_ACTION_LABELS[a as FileAction],
+					)}
 					selectedIndex={promptOptionIndex}
 					showNumbers={true}
 				/>
 			)}
 
-			{showSettings && <SettingsMenu onExit={() => { setShowSettings(false); addMessage('system', 'Settings saved'); }} />}
-			{showRecent && <RecentMenu onExit={() => { setShowRecent(false); addMessage('system', 'Closed recent downloads menu'); }} />}
-			{showHelp && <HelpMenu initialTab={helpTab} onExit={() => { setShowHelp(false); addMessage('system', 'Help dialog dismissed'); }} />}
+			{showSettings && (
+				<SettingsMenu
+					onExit={() => {
+						setShowSettings(false);
+						addMessage('system', 'Settings saved');
+					}}
+				/>
+			)}
+			{showRecent && (
+				<RecentMenu
+					onExit={() => {
+						setShowRecent(false);
+						addMessage('system', 'Closed recent downloads menu');
+					}}
+				/>
+			)}
+			{showHelp && (
+				<HelpMenu
+					initialTab={helpTab}
+					onExit={() => {
+						setShowHelp(false);
+						addMessage('system', 'Help dialog dismissed');
+					}}
+				/>
+			)}
 
 			<StatusBar
 				ctrlCPressed={ctrlCPressed}
@@ -83,12 +109,12 @@ export default function App() {
 					showHelp
 						? 'help'
 						: showSettings
-						? 'settings'
-						: showRecent
-						? 'recent'
-						: postDownloadPrompt
-						? 'prompt'
-						: null
+							? 'settings'
+							: showRecent
+								? 'recent'
+								: postDownloadPrompt
+									? 'prompt'
+									: null
 				}
 			/>
 		</Box>

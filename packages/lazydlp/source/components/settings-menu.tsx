@@ -59,24 +59,37 @@ const SETTINGS_DEF: SettingDef[] = [
 	{
 		key: 'antiBanSleep',
 		label: 'Anti-Ban Sleep Mode',
-		description: 'Bypass 429 Too Many Requests errors by adding randomized delays (Warning: Slower)',
+		description:
+			'Bypass 429 Too Many Requests errors by adding randomized delays (Warning: Slower)',
 		options: [true, false],
 		format: (v: any) => (v ? 'enabled' : 'disabled'),
 	},
 	{
 		key: 'defaultApp',
 		label: 'Default Media App',
-		description: 'App to open files with (e.g. vlc, mpv). Empty means system default.',
+		description:
+			'App to open files with (e.g. vlc, mpv). Empty means system default.',
 		options: ['', 'vlc', 'mpv', 'Custom...'],
-		format: (v: any) => v === '' ? 'system default' : String(v),
+		format: (v: any) => (v === '' ? 'system default' : String(v)),
 		allowCustom: true,
 	},
 	{
 		key: 'cookiesFromBrowser',
 		label: 'Browser Cookies',
-		description: 'Extract cookies from browser (e.g., chrome, firefox) to bypass rate limits.',
-		options: ['', 'chrome', 'firefox', 'brave', 'edge', 'opera', 'vivaldi', 'safari', 'Custom...'],
-		format: (v: any) => v === '' ? 'none' : String(v),
+		description:
+			'Extract cookies from browser (e.g., chrome, firefox) to bypass rate limits.',
+		options: [
+			'',
+			'chrome',
+			'firefox',
+			'brave',
+			'edge',
+			'opera',
+			'vivaldi',
+			'safari',
+			'Custom...',
+		],
+		format: (v: any) => (v === '' ? 'none' : String(v)),
 		allowCustom: true,
 	},
 ];
@@ -106,13 +119,10 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 				}
 				return;
 			}
-			
+
 			if (isEditingCustomInput) {
 				if (key.return) {
-					updateSetting(
-						activeSetting.key,
-						editStringValue as never,
-					);
+					updateSetting(activeSetting.key, editStringValue as never);
 					setIsEditingCustomInput(false);
 					setIsEditing(false);
 				}
@@ -131,10 +141,7 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 					setEditStringValue(String(config.settings[activeSetting.key] || ''));
 					return;
 				}
-				updateSetting(
-					activeSetting.key,
-					selectedOpt as never,
-				);
+				updateSetting(activeSetting.key, selectedOpt as never);
 				setIsEditing(false);
 			}
 			return;
@@ -180,7 +187,10 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 							const isSelected = i === editOptionIndex;
 							const currentVal = config.settings[activeSetting.key] ?? '';
 							const isCurrent =
-								currentVal === opt || (opt === 'Custom...' && activeSetting.allowCustom && !activeSetting.options.includes(currentVal as any));
+								currentVal === opt ||
+								(opt === 'Custom...' &&
+									activeSetting.allowCustom &&
+									!activeSetting.options.includes(currentVal as any));
 							const displayOpt = activeSetting.format
 								? activeSetting.format(opt)
 								: String(opt);
@@ -234,14 +244,14 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 						onSubmit={() => {
 							if (activeSetting) {
 								const currentVal = config.settings[activeSetting.key];
-								
+
 								const opts = activeSetting.options;
 								let currentIdx = opts.indexOf(currentVal as never);
 								if (currentIdx === -1 && activeSetting.allowCustom) {
 									currentIdx = opts.indexOf('Custom...' as never);
 								}
 								setEditOptionIndex(Math.max(0, currentIdx));
-								
+
 								setIsEditing(true);
 							}
 						}}
@@ -252,9 +262,7 @@ export default function SettingsMenu({onExit}: {onExit: () => void}) {
 				{filteredSettings.map((setting, index) => {
 					const isActive = index === selectedIndex;
 					const val = config.settings[setting.key];
-					const displayVal = setting.format
-						? setting.format(val)
-						: String(val);
+					const displayVal = setting.format ? setting.format(val) : String(val);
 
 					return (
 						<Box key={setting.key}>

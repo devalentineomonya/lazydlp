@@ -34,7 +34,7 @@ export const useMessageStore = create<MessageState>(set => ({
 							...msg,
 							text,
 							isPending: isPending !== undefined ? isPending : msg.isPending,
-					  }
+						}
 					: msg,
 			),
 		})),

@@ -79,7 +79,11 @@ export default function WelcomeHeader() {
 					borderLeft={false}
 					borderRight={false}
 				/>
-				<Box marginBottom={1} flexDirection="row" justifyContent="space-between">
+				<Box
+					marginBottom={1}
+					flexDirection="row"
+					justifyContent="space-between"
+				>
 					<Text bold color={theme.primary}>
 						Recent activity
 					</Text>
@@ -101,9 +105,12 @@ export default function WelcomeHeader() {
 									<Text color={theme.link}>
 										{makeLink('▶ Open', 'file://' + recent.filepath)}
 									</Text>
-									<Text>  </Text>
+									<Text> </Text>
 									<Text color={theme.link}>
-										{makeLink('📂 Location', 'file://' + path.dirname(recent.filepath))}
+										{makeLink(
+											'📂 Location',
+											'file://' + path.dirname(recent.filepath),
+										)}
 									</Text>
 								</Box>
 							)}

@@ -31,9 +31,11 @@ export const useConfigStore = create<ConfigState>(set => ({
 			saveConfig(newConfig);
 			return {config: newConfig};
 		}),
-	removeRecentDownload: (url) => 
+	removeRecentDownload: url =>
 		set(state => {
-			const newRecents = state.config.recentDownloads.filter(r => r.url !== url);
+			const newRecents = state.config.recentDownloads.filter(
+				r => r.url !== url,
+			);
 			const newConfig = {...state.config, recentDownloads: newRecents};
 			saveConfig(newConfig);
 			return {config: newConfig};
@@ -53,7 +55,10 @@ export const useConfigStore = create<ConfigState>(set => ({
 	addCommandHistory: cmd =>
 		set(state => {
 			if (!cmd.trim()) return state;
-			const newHistory = [cmd, ...state.config.commandHistory.filter(c => c !== cmd)].slice(0, 50);
+			const newHistory = [
+				cmd,
+				...state.config.commandHistory.filter(c => c !== cmd),
+			].slice(0, 50);
 			const newConfig = {...state.config, commandHistory: newHistory};
 			saveConfig(newConfig);
 			return {config: newConfig};

@@ -16,6 +16,7 @@ Lazydlp provides a gorgeous, interactive, and user-friendly experience for downl
 - **Interactive Action Menu**: Quickly play downloaded media or open their containing folders directly from your recent history.
 - **Android / Termux Ready**: Automatically detects Termux environments, safely maps to your Android shared storage, and guides you through setup.
 - **Cross-Platform**: Works smoothly on Windows, macOS, Linux, and Android.
+
 ## Quick Start (No Installation Required)
 
 You can run Lazydlp instantly without installing anything using your favorite package manager:
@@ -47,6 +48,7 @@ yarn dlx lazydlp
 ### 📱 Android (Termux) Setup
 
 Lazydlp works flawlessly on Android via Termux! To ensure the best experience:
+
 1. Allow Termux to access your phone's shared storage so downloaded videos appear in your Gallery:
    ```bash
    termux-setup-storage

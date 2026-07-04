@@ -4,12 +4,21 @@ import {theme} from '../utils/theme.js';
 import {useConfigStore} from '../store/config-store.js';
 import fs from 'node:fs';
 import ActionMenu from './action-menu.js';
-import {handleFileAction, FileAction, FILE_ACTION_LABELS} from '../utils/media.js';
+import {
+	handleFileAction,
+	FileAction,
+	FILE_ACTION_LABELS,
+} from '../utils/media.js';
 
 export default function RecentMenu({onExit}: {onExit: () => void}) {
 	const {config, removeRecentDownload} = useConfigStore();
 	const [selectedIndex, setSelectedIndex] = useState(0);
-	const [actionPrompt, setActionPrompt] = useState<{title?: string; filepath: string; url: string; exists: boolean} | null>(null);
+	const [actionPrompt, setActionPrompt] = useState<{
+		title?: string;
+		filepath: string;
+		url: string;
+		exists: boolean;
+	} | null>(null);
 	const [actionIndex, setActionIndex] = useState(0);
 
 	const recents = config.recentDownloads;
@@ -35,7 +44,7 @@ export default function RecentMenu({onExit}: {onExit: () => void}) {
 			if (key.return) {
 				const action = actions[actionIndex];
 				const filepath = actionPrompt.filepath;
-				
+
 				if (action === 'remove_log') {
 					removeRecentDownload(actionPrompt.url);
 				} else if (action && actionPrompt.exists) {
@@ -62,7 +71,9 @@ export default function RecentMenu({onExit}: {onExit: () => void}) {
 			} else if (key.return) {
 				const selected = recents[selectedIndex];
 				if (selected) {
-					const exists = selected.filepath ? fs.existsSync(selected.filepath) : false;
+					const exists = selected.filepath
+						? fs.existsSync(selected.filepath)
+						: false;
 					setActionPrompt({
 						title: selected.title,
 						filepath: selected.filepath || '',
@@ -76,10 +87,10 @@ export default function RecentMenu({onExit}: {onExit: () => void}) {
 	});
 
 	if (actionPrompt) {
-		const actions: FileAction[] = actionPrompt.exists 
+		const actions: FileAction[] = actionPrompt.exists
 			? ['open', 'location', 'delete', 'remove_log']
 			: ['remove_log'];
-			
+
 		return (
 			<ActionMenu
 				title={`Action for: ${actionPrompt.title || actionPrompt.filepath}`}
@@ -103,7 +114,9 @@ export default function RecentMenu({onExit}: {onExit: () => void}) {
 				<Box flexDirection="column" marginBottom={1}>
 					{recents.map((recent, index) => {
 						const isActive = index === selectedIndex;
-						const exists = recent.filepath ? fs.existsSync(recent.filepath) : false;
+						const exists = recent.filepath
+							? fs.existsSync(recent.filepath)
+							: false;
 
 						return (
 							<Box key={index + recent.url}>
@@ -111,8 +124,12 @@ export default function RecentMenu({onExit}: {onExit: () => void}) {
 									<Text color={theme.link}>{isActive ? '>' : ' '}</Text>
 								</Box>
 								<Box flexDirection="column">
-									<Text color={isActive ? theme.link : theme.text} wrap="truncate-end">
-										{recent.title || 'Unknown Title'} {exists ? '' : <Text color={theme.error}>(Deleted)</Text>}
+									<Text
+										color={isActive ? theme.link : theme.text}
+										wrap="truncate-end"
+									>
+										{recent.title || 'Unknown Title'}{' '}
+										{exists ? '' : <Text color={theme.error}>(Deleted)</Text>}
 									</Text>
 									<Text color={theme.dim} wrap="truncate-end">
 										{recent.filepath || recent.url}

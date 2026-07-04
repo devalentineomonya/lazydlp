@@ -13,7 +13,13 @@ import {isValidYouTubeUrl} from '../utils/url-utils.js';
 import {COMMANDS} from '../utils/commands.js';
 
 export function useAppState() {
-	const {config, setDownloadDir, addRecentDownload, addCommandHistory, updateSetting} = useConfigStore();
+	const {
+		config,
+		setDownloadDir,
+		addRecentDownload,
+		addCommandHistory,
+		updateSetting,
+	} = useConfigStore();
 	const {
 		history,
 		addMessage,
@@ -29,11 +35,14 @@ export function useAppState() {
 	const [showHelp, setShowHelp] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const [showRecent, setShowRecent] = useState(false);
-	const [postDownloadPrompt, setPostDownloadPrompt] = useState<{title?: string; filepath: string} | null>(null);
+	const [postDownloadPrompt, setPostDownloadPrompt] = useState<{
+		title?: string;
+		filepath: string;
+	} | null>(null);
 	const [promptOptionIndex, setPromptOptionIndex] = useState(0);
 	const [helpTab, setHelpTab] = useState(0);
 	const [inputKey, setInputKey] = useState(0);
-	const [, setHistoryIndex] = useState(-1);
+	const [historyIndex, setHistoryIndex] = useState(-1);
 	const {exit} = useApp();
 
 	const activeHandles = useRef<{kill: () => void}[]>([]);
@@ -100,7 +109,7 @@ export function useAppState() {
 				return;
 			}
 			const actions: FileAction[] = ['open', 'location', 'delete'];
-			
+
 			if (key.upArrow) {
 				setPromptOptionIndex(prev => Math.max(0, prev - 1));
 				return;
@@ -108,7 +117,7 @@ export function useAppState() {
 				setPromptOptionIndex(prev => Math.min(actions.length - 1, prev + 1));
 				return;
 			}
-			
+
 			let selectedIdx = promptOptionIndex;
 			if (inputChar === '1') selectedIdx = 0;
 			else if (inputChar === '2') selectedIdx = 1;
@@ -151,8 +160,9 @@ export function useAppState() {
 		}
 
 		const isCommandMode = input.startsWith('/');
+		const isTypingCommand = isCommandMode && !input.trim().includes(' ');
 
-		if (isCommandMode && !isDownloading) {
+		if (isTypingCommand && !isDownloading) {
 			if (suggestions.length > 0) {
 				if (key.upArrow) {
 					setSelectedIndex(prev => Math.max(0, prev - 1));
@@ -160,19 +170,28 @@ export function useAppState() {
 					setSelectedIndex(prev => Math.min(suggestions.length - 1, prev + 1));
 				}
 			}
-		} else if (!isDownloading && !postDownloadPrompt && !isCommandMode) {
+		} else if (!isDownloading && !postDownloadPrompt) {
 			// Command history cycling
 			if (key.upArrow) {
 				setHistoryIndex(prev => {
 					const next = Math.min(config.commandHistory.length - 1, prev + 1);
-					if (next >= 0) setInput(config.commandHistory[next]!);
+					if (next >= 0) {
+						setInput(config.commandHistory[next]!);
+						// Reset cursor to end of text by forcing a key re-render
+						setInputKey(k => k + 1);
+					}
 					return next;
 				});
 			} else if (key.downArrow) {
 				setHistoryIndex(prev => {
 					const next = Math.max(-1, prev - 1);
-					if (next === -1) setInput('');
-					else setInput(config.commandHistory[next]!);
+					if (next === -1) {
+						setInput('');
+						setInputKey(k => k + 1);
+					} else {
+						setInput(config.commandHistory[next]!);
+						setInputKey(k => k + 1);
+					}
 					return next;
 				});
 			}
@@ -233,10 +252,7 @@ export function useAppState() {
 					const customArgs = args.filter(a => a !== url);
 
 					if (url && isValidYouTubeUrl(url)) {
-						handleDownload(
-							url,
-							customArgs
-						);
+						handleDownload(url, customArgs);
 					} else {
 						addMessage(
 							'error',
