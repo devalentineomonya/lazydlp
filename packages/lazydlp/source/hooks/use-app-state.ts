@@ -237,57 +237,60 @@ export function useAppState() {
 		if (userInput.startsWith('/')) {
 			const [cmd, ...args] = userInput.split(' ');
 
-			if (cmd === '/help') {
-				setShowHelp(true);
-				setHelpTab(0);
-			} else if (cmd === '/clear') {
-				clearMessages();
-			} else if (cmd === '/download') {
-				if (args.length === 0) {
-					addMessage(
-						'error',
-						'Please provide a URL to download. Usage: /download <url> [-t mp3|mp4|mkv]',
-					);
-				} else {
-					const url = args.find(a => !a.startsWith('-'));
-					const customArgs = args.filter(a => a !== url);
-
-					if (url && isValidYouTubeUrl(url)) {
-						handleDownload(url, customArgs);
-					} else {
+			const commandMap: Record<string, (cmdArgs: string[]) => void> = {
+				'/help': () => {
+					setShowHelp(true);
+					setHelpTab(0);
+				},
+				'/clear': () => clearMessages(),
+				'/download': (cmdArgs) => {
+					if (cmdArgs.length === 0) {
 						addMessage(
 							'error',
-							'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.',
+							'Please provide a URL to download. Usage: /download <url> [-t mp3|mp4|mkv]',
 						);
-					}
-				}
-			} else if (cmd === '/settings') {
-				setShowSettings(true);
-			} else if (cmd === '/configure') {
-				handleConfigure(false);
-			} else if (cmd === '/update') {
-				handleUpdate();
-			} else if (cmd === '/setdir') {
-				if (args.length === 0) {
-					addMessage(
-						'error',
-						`Current directory is: ${config.downloadDir}\nUsage: /setdir <path>`,
-					);
-				} else {
-					const newDir = path.resolve(
-						args.join(' ').replace(/^~/, os.homedir()),
-					);
-					if (fs.existsSync(newDir)) {
-						setDownloadDir(newDir);
-						addMessage('system', `Download directory updated to: ${newDir}`);
 					} else {
-						addMessage('error', `Directory does not exist: ${newDir}`);
+						const url = cmdArgs.find(a => !a.startsWith('-'));
+						const customArgs = cmdArgs.filter(a => a !== url);
+
+						if (url && isValidYouTubeUrl(url)) {
+							handleDownload(url, customArgs);
+						} else {
+							addMessage(
+								'error',
+								'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.',
+							);
+						}
 					}
-				}
-			} else if (cmd === '/exit') {
-				quitApp();
-			} else if (cmd === '/recent') {
-				setShowRecent(true);
+				},
+				'/settings': () => setShowSettings(true),
+				'/configure': () => handleConfigure(false),
+				'/update': () => handleUpdate(),
+				'/setdir': (cmdArgs) => {
+					if (cmdArgs.length === 0) {
+						addMessage(
+							'error',
+							`Current directory is: ${config.downloadDir}\nUsage: /setdir <path>`,
+						);
+					} else {
+						const newDir = path.resolve(
+							cmdArgs.join(' ').replace(/^~/, os.homedir()),
+						);
+						if (fs.existsSync(newDir)) {
+							setDownloadDir(newDir);
+							addMessage('system', `Download directory updated to: ${newDir}`);
+						} else {
+							addMessage('error', `Directory does not exist: ${newDir}`);
+						}
+					}
+				},
+				'/exit': () => quitApp(),
+				'/recent': () => setShowRecent(true),
+			};
+
+			const handler = commandMap[cmd];
+			if (handler) {
+				handler(args);
 			} else {
 				addMessage('error', `Unknown command: ${cmd}`);
 			}
