@@ -69,7 +69,7 @@ export function useYtDlpDownload({
 			outputBuffer += chunk;
 
 			const now = Date.now();
-			if (!forceUpdate && now - lastUpdate < 100) {
+			if (!forceUpdate && now - lastUpdate < 250) {
 				return;
 			}
 			lastUpdate = now;

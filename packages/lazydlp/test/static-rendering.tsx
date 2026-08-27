@@ -114,3 +114,47 @@ test('prints each finished message exactly once', t => {
 test('prints the welcome banner exactly once', t => {
 	t.is(count(result.printed, /Welcome back/g), 1);
 });
+
+test.serial(
+	'does not repaint the live frame while nothing changes',
+	async t => {
+		// A spinner running on its own interval repaints the whole live region —
+		// progress bar, input box and status bar — every 80ms, which is what made
+		// the footer and text box shake during downloads. The spinner frame is now
+		// driven by the work's own updates, so an idle pending message costs
+		// nothing.
+		useMessageStore.setState({history: []});
+
+		const {stdout, writes} = fakeStdout();
+		const instance = render(<App />, {
+			stdout,
+			stdin: fakeStdin(),
+			exitOnCtrlC: false,
+			patchConsole: false,
+		});
+
+		useMessageStore
+			.getState()
+			.addTemporaryMessage('yt-dlp', 'Extracting info...', true);
+
+		await delay(250);
+		const settled = writes.length;
+		await delay(500);
+		instance.unmount();
+
+		t.is(writes.length - settled, 0);
+	},
+);
+
+test.serial('advances the spinner as the work reports progress', async t => {
+	useMessageStore.setState({history: []});
+	const store = useMessageStore.getState();
+	const id = store.addTemporaryMessage('yt-dlp', 'a', true);
+
+	const revisionOf = () => useMessageStore.getState().history[0]?.revision;
+	t.is(revisionOf(), 0);
+	store.updateMessage(id, 'b', true);
+	t.is(revisionOf(), 1);
+	store.updateMessage(id, 'c', true);
+	t.is(revisionOf(), 2);
+});

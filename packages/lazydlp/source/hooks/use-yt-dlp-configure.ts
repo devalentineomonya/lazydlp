@@ -140,7 +140,7 @@ export function useYtDlpConfigure({
 						response.on('data', chunk => {
 							downloaded += chunk.length;
 							const now = Date.now();
-							if (total > 0 && now - lastUpdate > 100) {
+							if (total > 0 && now - lastUpdate > 250) {
 								lastUpdate = now;
 								const percent = Math.round((downloaded / total) * 100);
 								const barWidth = 30;

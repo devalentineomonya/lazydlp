@@ -1,6 +1,6 @@
 import {Box, Text} from 'ink';
 import React from 'react';
-import Spinner from 'ink-spinner';
+import Spinner from './spinner.js';
 import Gradient from 'ink-gradient';
 import {Message} from '../types/types.js';
 import {theme} from '../utils/theme.js';
@@ -27,7 +27,7 @@ function MessageRow({message: msg, collapsed}: Props) {
 					<Box flexDirection="row">
 						{msg.isPending ? (
 							<Text color={theme.dim}>
-								<Spinner type="dots" />{' '}
+								<Spinner step={msg.revision ?? 0} />{' '}
 							</Text>
 						) : (
 							<Text color={theme.dim}>└ </Text>
@@ -50,7 +50,7 @@ function MessageRow({message: msg, collapsed}: Props) {
 			{msg.type === 'system' && msg.isPending && (
 				<Box paddingLeft={0}>
 					<Text color={theme.dim}>
-						<Spinner type="dots" />{' '}
+						<Spinner step={msg.revision ?? 0} />{' '}
 					</Text>
 					<Gradient name="pastel">
 						<Text>{msg.text}</Text>

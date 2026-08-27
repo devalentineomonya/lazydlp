@@ -26,12 +26,12 @@ export const useMessageStore = create<MessageState>(set => ({
 	staticEpoch: 0,
 	addMessage: (type, text) =>
 		set(state => ({
-			history: [...state.history, {id: makeId(), type, text}],
+			history: [...state.history, {id: makeId(), type, text, revision: 0}],
 		})),
 	addTemporaryMessage: (type, text, isPending) => {
 		const id = makeId();
 		set(state => ({
-			history: [...state.history, {id, type, text, isPending}],
+			history: [...state.history, {id, type, text, isPending, revision: 0}],
 		}));
 		return id;
 	},
@@ -49,6 +49,7 @@ export const useMessageStore = create<MessageState>(set => ({
 				return {
 					...msg,
 					text,
+					revision: (msg.revision ?? 0) + 1,
 					isPending: isPending === undefined ? msg.isPending : isPending,
 				};
 			}),
