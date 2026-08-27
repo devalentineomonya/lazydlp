@@ -20,7 +20,20 @@ export const playMedia = (filepath: string, defaultApp?: string) => {
 	});
 };
 
-export type FileAction = 'open' | 'location' | 'delete' | 'remove_log' | 'close';
+export type FileAction =
+	'open' | 'location' | 'delete' | 'remove_log' | 'close';
+
+/**
+ * Options offered by the post-download prompt, in display order. The prompt's
+ * selected index maps straight into this array, so the order is shared rather
+ * than repeated at each use site.
+ */
+export const POST_DOWNLOAD_ACTIONS: FileAction[] = [
+	'open',
+	'location',
+	'delete',
+	'close',
+];
 
 export const FILE_ACTION_LABELS: Record<FileAction, string> = {
 	open: 'Open File',

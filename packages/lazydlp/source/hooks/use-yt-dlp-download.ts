@@ -2,7 +2,7 @@ import {spawn} from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { getDlpPath, buildYtDlpArgs } from '../utils/yt-dlp-utils.js';
+import {getDlpPath, buildYtDlpArgs} from '../utils/yt-dlp-utils.js';
 import {UseYtDlpProps} from './use-yt-dlp-types.js';
 
 export function useYtDlpDownload({
@@ -152,10 +152,12 @@ export function useYtDlpDownload({
 				addRecentDownload(url, videoTitle, finalFilepath);
 
 				if (os.platform() === 'android') {
-					const isDir = !finalFilepath || !fs.existsSync(finalFilepath);
-					const scanTarget = isDir ? config.downloadDir : finalFilepath;
-
-					const scannerArgs = isDir ? ['-r', scanTarget] : [scanTarget];
+					// Scan the single file when we know it, otherwise fall back to a
+					// recursive scan of the download directory.
+					const scannerArgs =
+						finalFilepath && fs.existsSync(finalFilepath)
+							? [finalFilepath]
+							: ['-r', config.downloadDir];
 					const scanner = spawn('termux-media-scan', scannerArgs);
 
 					scanner.on('error', () => {
@@ -189,5 +191,5 @@ export function useYtDlpDownload({
 		});
 	};
 
-	return { handleDownload };
+	return {handleDownload};
 }

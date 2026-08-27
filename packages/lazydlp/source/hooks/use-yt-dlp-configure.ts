@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
-import { getDlpPath, findPython, resetDlpCache } from '../utils/yt-dlp-utils.js';
+import {getDlpPath, findPython, resetDlpCache} from '../utils/yt-dlp-utils.js';
 import {resetYtDlpVersionCache} from '../utils/version.js';
 import {UseYtDlpProps} from './use-yt-dlp-types.js';
 
@@ -105,6 +105,18 @@ export function useYtDlpConfigure({
 			const file = fs.createWriteStream(destPath);
 			updateMessage(logId, 'Connecting to GitHub releases...', true);
 
+			// createWriteStream has already created destPath, so a failure here must
+			// remove it again. Leaving a zero-byte file behind makes getDlpPath()
+			// report yt-dlp as installed, which breaks every later download.
+			const abortDownload = (reason: string) => {
+				file.close(() => {
+					fs.unlink(destPath, () => {});
+				});
+				setIsDownloading(false);
+				updateMessage(logId, 'Download failed.', false);
+				addMessage('error', reason);
+			};
+
 			const download = (urlStr: string) => {
 				const req = https
 					.get(urlStr, response => {
@@ -112,12 +124,9 @@ export function useYtDlpConfigure({
 							return download(response.headers.location!);
 						}
 						if (response.statusCode !== 200) {
-							addMessage(
-								'error',
+							abortDownload(
 								`Download failed with status ${response.statusCode}`,
 							);
-							setIsDownloading(false);
-							updateMessage(logId, 'Download failed.', false);
 							return;
 						}
 
@@ -165,10 +174,7 @@ export function useYtDlpConfigure({
 						});
 					})
 					.on('error', err => {
-						fs.unlink(destPath, () => {});
-						setIsDownloading(false);
-						updateMessage(logId, 'Download failed.', false);
-						addMessage('error', `Download error: ${err.message}`);
+						abortDownload(`Download error: ${err.message}`);
 					});
 				activeHandles.current.push({kill: () => req.destroy()});
 			};
@@ -277,5 +283,5 @@ export function useYtDlpConfigure({
 		}
 	};
 
-	return { handleConfigure, autoConfigureSystemDefaults };
+	return {handleConfigure, autoConfigureSystemDefaults};
 }

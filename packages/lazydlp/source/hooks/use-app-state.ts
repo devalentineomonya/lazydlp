@@ -2,14 +2,14 @@ import {useApp, useInput} from 'ink';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {handleFileAction, FileAction} from '../utils/media.js';
+import {handleFileAction, POST_DOWNLOAD_ACTIONS} from '../utils/media.js';
 import {useEffect, useState, useRef} from 'react';
 import {useConfigStore} from '../store/config-store.js';
 import {useMessageStore} from '../store/message-store.js';
 import {useDownloadStore} from '../store/download-store.js';
 import {useYtDlp} from './use-yt-dlp.js';
 import {getDlpPath} from '../utils/yt-dlp-utils.js';
-import {isValidYouTubeUrl} from '../utils/url-utils.js';
+import {splitUrlAndArgs} from '../utils/url-utils.js';
 import {COMMANDS} from '../utils/commands.js';
 
 export function useAppState() {
@@ -42,7 +42,7 @@ export function useAppState() {
 	const [promptOptionIndex, setPromptOptionIndex] = useState(0);
 	const [helpTab, setHelpTab] = useState(0);
 	const [inputKey, setInputKey] = useState(0);
-	const [historyIndex, setHistoryIndex] = useState(-1);
+	const [, setHistoryIndex] = useState(-1);
 	const {exit} = useApp();
 
 	const activeHandles = useRef<{kill: () => void}[]>([]);
@@ -84,6 +84,10 @@ export function useAppState() {
 
 	// Auto configure if yt-dlp is not available
 	useEffect(() => {
+		// Set by the test suite, and available to anyone who would rather install
+		// yt-dlp themselves than have the app fetch it on first run.
+		if (process.env['LAZYDLP_SKIP_AUTO_CONFIGURE']) return;
+
 		let isMounted = true;
 		getDlpPath().then(cmd => {
 			if (!cmd && isMounted) {
@@ -108,13 +112,13 @@ export function useAppState() {
 				setPostDownloadPrompt(null);
 				return;
 			}
-			const actions: FileAction[] = ['open', 'location', 'delete', 'close'];
-
 			if (key.upArrow) {
 				setPromptOptionIndex(prev => Math.max(0, prev - 1));
 				return;
 			} else if (key.downArrow) {
-				setPromptOptionIndex(prev => Math.min(actions.length - 1, prev + 1));
+				setPromptOptionIndex(prev =>
+					Math.min(POST_DOWNLOAD_ACTIONS.length - 1, prev + 1),
+				);
 				return;
 			}
 
@@ -124,8 +128,11 @@ export function useAppState() {
 			else if (inputChar === '3') selectedIdx = 2;
 			else if (inputChar === '4') selectedIdx = 3;
 
-			if (key.return || (inputChar && ['1', '2', '3', '4'].includes(inputChar))) {
-				const action = actions[selectedIdx];
+			if (
+				key.return ||
+				(inputChar && ['1', '2', '3', '4'].includes(inputChar))
+			) {
+				const action = POST_DOWNLOAD_ACTIONS[selectedIdx];
 				const filepath = postDownloadPrompt.filepath;
 				if (action && action !== 'close') {
 					handleFileAction(
@@ -171,7 +178,7 @@ export function useAppState() {
 					setSelectedIndex(prev => Math.min(suggestions.length - 1, prev + 1));
 				}
 			}
-		} else if (!isDownloading && !postDownloadPrompt) {
+		} else if (!isDownloading) {
 			// Command history cycling
 			if (key.upArrow) {
 				setHistoryIndex(prev => {
@@ -198,6 +205,20 @@ export function useAppState() {
 			}
 		}
 	});
+
+	const startDownload = (args: string[]) => {
+		const {url, customArgs} = splitUrlAndArgs(args);
+
+		if (!url) {
+			addMessage(
+				'error',
+				'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.',
+			);
+			return;
+		}
+
+		handleDownload(url, customArgs);
+	};
 
 	const handleSubmit = (value: string) => {
 		if (!value.trim() || isDownloading) return;
@@ -235,38 +256,33 @@ export function useAppState() {
 		addMessage('user', userInput);
 
 		if (userInput.startsWith('/')) {
-			const [cmd, ...args] = userInput.split(' ');
+			const [cmd = '', ...args] = userInput.split(' ');
 
 			const commandMap: Record<string, (cmdArgs: string[]) => void> = {
 				'/help': () => {
 					setShowHelp(true);
 					setHelpTab(0);
 				},
-				'/clear': () => clearMessages(),
-				'/download': (cmdArgs) => {
+				'/clear': () => {
+					// Settled log lines live in <Static>, which Ink has already written
+					// to the terminal, so emptying the store is not enough on its own.
+					process.stdout.write('\u001B[2J\u001B[3J\u001B[H');
+					clearMessages();
+				},
+				'/download': cmdArgs => {
 					if (cmdArgs.length === 0) {
 						addMessage(
 							'error',
 							'Please provide a URL to download. Usage: /download <url> [-t mp3|mp4|mkv]',
 						);
 					} else {
-						const url = cmdArgs.find(a => !a.startsWith('-'));
-						const customArgs = cmdArgs.filter(a => a !== url);
-
-						if (url && isValidYouTubeUrl(url)) {
-							handleDownload(url, customArgs);
-						} else {
-							addMessage(
-								'error',
-								'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.',
-							);
-						}
+						startDownload(cmdArgs);
 					}
 				},
 				'/settings': () => setShowSettings(true),
 				'/configure': () => handleConfigure(false),
 				'/update': () => handleUpdate(),
-				'/setdir': (cmdArgs) => {
+				'/setdir': cmdArgs => {
 					if (cmdArgs.length === 0) {
 						addMessage(
 							'error',
@@ -295,19 +311,7 @@ export function useAppState() {
 				addMessage('error', `Unknown command: ${cmd}`);
 			}
 		} else {
-			// If not a command, parse for flags
-			const args = userInput.split(' ');
-			const url = args.find(a => !a.startsWith('-'));
-			const customArgs = args.filter(a => a !== url);
-
-			if (url && isValidYouTubeUrl(url)) {
-				handleDownload(url, customArgs);
-			} else {
-				addMessage(
-					'error',
-					'Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.',
-				);
-			}
+			startDownload(userInput.split(' '));
 		}
 	};
 

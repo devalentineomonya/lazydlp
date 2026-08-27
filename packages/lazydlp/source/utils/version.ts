@@ -6,15 +6,31 @@ import os from 'node:os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const packageJsonPath = path.resolve(__dirname, '../../package.json');
+// Walk up from the current file to find our own package.json. The path
+// differs between the tsc build (dist/utils/version.js) and the bundled
+// build (dist/app.js), so a fixed relative path cannot cover both.
+const readOwnVersion = (): string => {
+	let dir = __dirname;
 
-let version = '0.0.0';
-try {
-	const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-	version = pkg.version;
-} catch (error) {
-	// Fallback if unable to read package.json
-}
+	while (true) {
+		try {
+			const pkg = JSON.parse(
+				fs.readFileSync(path.join(dir, 'package.json'), 'utf8'),
+			);
+			if (pkg.name === 'lazydlp' && typeof pkg.version === 'string') {
+				return pkg.version;
+			}
+		} catch {
+			// Keep walking up
+		}
+
+		const parent = path.dirname(dir);
+		if (parent === dir) return '0.0.0';
+		dir = parent;
+	}
+};
+
+const version = readOwnVersion();
 
 export const APP_VERSION = version;
 
